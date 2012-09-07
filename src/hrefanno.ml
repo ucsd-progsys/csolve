@@ -53,7 +53,7 @@ let hcp = Hashtbl.copy
 
 type unf  = Sl.t list list
 type app  =
-  | App of Sl.t * Ct.ind_hf_appl * unf
+  | App of Sl.t * Ct.hf_appl * unf
   | Cnc of Sl.t * string
 
 let concretizes l = function
@@ -356,7 +356,32 @@ let gen_ann_if_new ctm gst me (sto, appm) = function
         assertf "conc_ann_if_new"
   | ann           -> (sto, appm), [ann]
 
-let annotate_instr ans sto gst ctm me appm = function 
+let do_sto_anno me env sto = function
+  | RA.Gen  (cl, al)       -> CtIS.remove sto cl
+  | RA.HGen (hf, sls, ins) -> Hf.fold_hf_shapes_on_sto (hf, sls, []) ins sto env
+  | RA.Ins  _    
+  | RA.HIns _ 
+  | _ -> assertf "do_sto_anno"
+
+let fold_if_open (res, appm) = function
+    | RA.Ins  (_, a, _)
+    | RA.HIns (a, _) ->
+        if SLM.mem a appm then 
+          mk_fold appm a :: res, SLM.remove a appm
+        else
+          res, appm
+    | _              -> res, appm
+
+let fold_all_open_locs ans appm =
+     List.rev ans
+  |> List.fold_left fold_if_open ([], appm)
+  |> fst
+
+let actually_fold_all_open_locs me env ans sto appm =
+     fold_all_open_locs ans appm
+  |> fun ans -> ans, List.fold_left (do_sto_anno me env) sto ans
+
+let annotate_instr spec env ans sto gst ctm me appm = function 
   | Set (lv, e, _) -> annotate_set sto gst ctm me appm (lv, e)
 
   | Call (_, Lval ((Var fv), NoOffset), _,_) 
@@ -380,7 +405,12 @@ let annotate_instr ans sto gst ctm me appm = function
       let (anns, sto, gst, me, appm) = instantiate sto gst ctm me appm v al cl in
       (newC ++ anns, sto, gst, me, appm)
 
-  | Call (rv,_,_,_) ->
+  | Call (rv, Lval ((Var fv), NoOffset), _, _) ->
+      let ca_sto = CtISp.funspec spec 
+                |> SM.find fv.vname |> fst
+                |> (fun x -> x.Ct.sto_out) in
+      let anns, sto = actually_fold_all_open_locs me env ans sto appm in
+      let sto       = CtIS.upd sto ca_sto in
       let (sto, appm), anns = M.mapfold (gen_ann_if_new ctm gst me) (sto, appm) ans in
       (*let conc, anns' = Misc.mapfold generalize conc globalslocs in*)
       let anns = List.concat anns in
@@ -389,39 +419,26 @@ let annotate_instr ans sto gst ctm me appm = function
 
   | i -> E.s <| bug "Unimplemented constrain_instr: %a@!@!" dn_instr i
 
-let fold_if_open (res, appm) = function
-    | RA.Ins  (_, a, _)
-    | RA.HIns (a, _) ->
-        if SLM.mem a appm then 
-          mk_fold appm a :: res, SLM.remove a appm
-        else
-          res, appm
-    | _              -> res, appm
-
-let fold_all_open_locs ans appm =
-     List.concat ans
-  |> List.rev
-  |> List.fold_left fold_if_open ([], appm)
-  |> fst
-  |> fun x -> M.append_to_last x ans
-
 let upd_wld (annos, _, _, _, _) (annos', sto, gst, me, appm) =
   (annos' :: annos, sto, gst, me, appm)
 
-let annotate_block anns sto gst ctm me is =
+let annotate_block spec anns sto gst ctm me is =
   let init = ([], sto, gst, me, SLM.empty) in
+  let env  = Heapfun.test_env in
   List.fold_left2 begin fun ((_, sto, gst, me, appm) as wld) ans ins ->
-    annotate_instr ans sto gst ctm me appm ins
+    annotate_instr spec env ans sto gst ctm me appm ins
     |> upd_wld wld end init anns is
   |> M.app_fst5 List.rev
-  |> (fun (ans, _, _, _, appm) -> fold_all_open_locs ans appm)
+  |> begin fun (ans, _, _, _, appm) ->
+       fold_all_open_locs (List.concat ans) appm
+    |> (fun x -> M.append_to_last x ans) end
 
-let annot_iter cfg sto ctm me anna =
+let annot_iter spec cfg sto ctm me anna =
   let nblocks    = Array.length cfg.Ssa.blocks in
   let do_block j =
     match cfg.Ssa.blocks.(j).Ssa.bstmt.skind with
     | Instr is ->
-        annotate_block anna.(j) sto CtIS.empty ctm me is
+        annotate_block spec anna.(j) sto CtIS.empty ctm me is
         |> M.m2append anna.(j)
         |> Array.set anna j
     | _        -> () in
@@ -434,20 +451,20 @@ let nil_cnca_of_sto sto =
   CtIS.domain sto
   |> List.fold_left (fun c x -> SLM.add x SLM.empty c) SLM.empty
 
-let annotate_cfg cfg shp =
+let annotate_cfg spec cfg shp =
   let nblocks        = Array.length cfg.Ssa.blocks in
   let anna, sto, ctm = acp shp.anna, shp.store, shp.etypm in
   let me             = (Hashtbl.create 16, Hashtbl.create 16) in
-  let _              = annot_iter cfg sto ctm me anna in
+  let _              = annot_iter spec cfg sto ctm me anna in
   let sto            = build_join_store_of_blocks sto anna in
   { vtyps = shp.vtyps;
     etypm = shp.etypm;
     store = sto;
     anna  = anna; }
 
-let annotate_shpm scim shpm =
+let annotate_shpm scim spec shpm =
   SM.fold begin fun fn shp shpm ->
     let anno =
          SM.find fn scim
-      |> (fun x -> annotate_cfg x.ST.cfg) in
+      |> (fun x -> annotate_cfg spec x.ST.cfg) in
     SM.add fn (anno shp) shpm end shpm SM.empty

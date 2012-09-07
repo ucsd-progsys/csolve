@@ -23,6 +23,8 @@
 
 (* This file is part of the liquidC Project.*)
 
+val cZero            : Cil.constant
+
 val referenced_var_of_exp : Cil.exp -> Cil.varinfo
 
 val fresh_arg_name   : unit -> string

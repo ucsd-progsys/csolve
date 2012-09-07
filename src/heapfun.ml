@@ -21,6 +21,7 @@
  *
  *)
 
+module C  = Cil
 module P  = Pretty
 module M  = FixMisc
 module I  = Index
@@ -31,6 +32,8 @@ module FC = FixConstraint
 module CM = CilMisc
 module SlS  = Sl.Subst
 module SlSS = Sl.SlocSlocSet
+module CtR  = Ct.RefCTypes
+module CtRS = CtR.Store
 module CtI  = Ct.I
 module CtIS = CtI.Store
 module CtIF = CtI.Field
@@ -44,27 +47,22 @@ open M.Ops
 (* Heap Functions. Let us assume that exactly the first location argument is bound *)
 
 module VR  = Ct.VarRefinement
-module RVT = Ct.RefVarTypes
-module RVS = Ct.Make(RVT)
-module RVSS = RVS.Store
-module RVSF = RVS.Field
-module RVSC = RVS.CType
-module RVSL = RVS.LDesc
+module RV  = Ct.RV
+module RVS = RV.Store
+module RVF = RV.Field
+module RVC = RV.CType
+module RVL = RV.LDesc
 
 type intrs       = Sl.t list
 
-type 'a def      = { loc_params : Sl.t list 
-                   ; ref_params : 'a list 
-                   ; unfolds    : intrs list
-                   ; rhs        : 'a Ctypes.prestore
-                   }
-
-type ref_def  = FC.reft def
-type var_def  = VR.t def
-type ind_def  = CtI.T.refinement def
+type def      = { loc_params : Sl.t list 
+                ; ref_params : VR.t list 
+                ; unfolds    : intrs list
+                ; rhs        : VR.t Ctypes.prestore
+                }
 
 module HfMap = M.StringMap
-type   env   = var_def HfMap.t
+type   env   = def HfMap.t
 
 let flocs_of def = def.loc_params
 let frefs_of def = def.ref_params
@@ -78,19 +76,19 @@ let fresh_unfs_of_hf cl hf env =
   |> M.map_fst (M.map_fst (fun _ -> cl))
 
 let def_of_intlist =
-  let nrf = ("", I.top) in
-  let nr0 = ("", I.of_int 0) in
+  let nrf = VR.top in
+  let nr0 = VR.of_const CM.cZero in
   let nm = "intlist" in
   let l  = Sl.fresh_abstract (CM.srcinfo_of_string "intlist_def") in
   let (lj, l') = (Sl.copy_concrete l, Sl.copy_fresh l) in
-  let ld = RVSL.create {Ct.stype = None; Ct.any = false} 
-    [(I.of_int 0, RVSF.create Ct.Final    Ct.dummy_fieldinfo (Ct.Int(4, nrf)));
-     (I.of_int 4, RVSF.create Ct.Nonfinal Ct.dummy_fieldinfo (Ct.Ref(l', nr0)))] in
+  let ld = RVL.create {Ct.stype = None; Ct.any = false} 
+    [(I.of_int 0, RVF.create Ct.Final    Ct.dummy_fieldinfo (Ct.Int(4, nrf)));
+     (I.of_int 4, RVF.create Ct.Nonfinal Ct.dummy_fieldinfo (Ct.Ref(l', nr0)))] in
   let ap = (nm, [l'], []) in
   { loc_params = [l]
   ; ref_params = []
   ; unfolds    = [[lj; l']]
-  ; rhs        = RVSS.add RVSS.empty lj ld |> M.flip RVSS.add_app ap
+  ; rhs        = RVS.add RVS.empty lj ld |> M.flip RVS.add_app ap
   }
 
 let test_env =
@@ -106,18 +104,30 @@ let wf_def { loc_params = ls
   List.length ls = List.length ins and
   apply ("", ls, rs) ins def = h*)
 
-let rec ind_of_rv = function
-  | Ct.Int (d, (_, i))  -> Ct.Int(d, i)
-  | Ct.Ref (s, (_, i))  -> Ct.Ref(s, i)
-  | Ct.FRef (f, (_, i)) -> Ct.FRef((RVS.CFun.map ind_of_rv f), i)
-  | Ct.ARef -> Ct.ARef
-  | Ct.Any  -> Ct.Any
+let rec top_out_unks = function
+  | Ct.Int (d, (_, i))  -> Ct.Int  (d, (i, Ct.reft_of_top))
+  | Ct.Ref (s, (_, i))  -> Ct.Ref  (s, (i, Ct.reft_of_top))
+  | Ct.FRef (f, (_, i)) ->
+      Ct.FRef ((RV.CFun.map top_out_unks f), (i, Ct.reft_of_top))
+  | Ct.ARef             -> Ct.ARef
+  | Ct.Any              -> Ct.Any
+
+let rec strip_refts = function
+  | Ct.Int (d, (i, _))  -> Ct.Int  (d, i)
+  | Ct.Ref (s, (i, _))  -> Ct.Ref  (s, i)
+  | Ct.FRef (f, (i, _)) ->
+      Ct.FRef ((CtR.CFun.map strip_refts f), i)
+  | Ct.ARef             -> Ct.ARef
+  | Ct.Any              -> Ct.Any
+
+let isto_of_rsto =
+  CtRS.map strip_refts
 
 let apply_hf_shape (_, sls, _) ins def =
   let ls, is = def |> flocs_of |> M.flip List.combine sls,
                def |> unfs_of  |> M.flip M.flapcombine ins in
-  let hp     = def |> rhs_of   |> RVS.Store.map ind_of_rv
-                               |> CtIS.subs (ls @ is) in
+  let hp     = def |> rhs_of   |> RVS.map (top_out_unks)
+                               |> CtRS.subs (ls @ is) in
   let deps   = List.fold_left (M.flip SlSS.add) SlSS.empty ls in
     deps, hp
 
@@ -131,16 +141,32 @@ let apply_hf_in_env ((hf, _, _) as app) ins env =
  * in the expansion of an hfun is the first argument.
  * BUT, any introduced location could be bound to an
  * ldesc. *)
-let fold_hf_on_sto ((hf, ls, _) as app) ins sto env =
+(*let fold_hf_on_sto ((hf, ls, _) as app) ins sto env =
   let bound_locs     = List.hd ls :: List.flatten ins
                     |> M.sort_and_compact in
   let (exp, sto')    = CtIS.partition (M.flip List.mem bound_locs) sto in
-  let desired_exp    = apply_hf_in_env app ins env |> snd in
+  let desired_exp    = apply_hf_in_env app ins env
+                    |> snd
+                    |> isto_of_rsto in
     if (CtIS.eq exp desired_exp) then
       CtIS.add_app sto' app
     else
       sto
+      *)
+let fold_hf_on_sto a b c d = assert false
   (* MK: this should be heap subtyping *)
+
+let fold_hf_shapes_on_sto ((hf, ls, _) as app) ins sto env =
+  let bound_locs     = List.hd ls :: List.flatten ins
+                    |> M.sort_and_compact in
+  let (exp, sto')    = CtIS.partition (M.flip List.mem bound_locs) sto in
+  let desired_exp    = apply_hf_in_env app ins env
+                    |> snd
+                    |> isto_of_rsto in
+    if (CtIS.eq exp desired_exp) then
+      CtIS.add_app sto' app
+    else
+      sto
  
 let ins l ls ins deps sto env =
   let (hf, ls', _) =
@@ -148,6 +174,7 @@ let ins l ls ins deps sto env =
     |> Ct.hf_appl_binding_of l
     |> M.maybe in
   apply_hf_in_env (hf, ls, []) ins env
+  |> M.app_snd isto_of_rsto
   |> M.app_fst (SlSS.union deps)
   |> M.app_snd (CtIS.remove sto l |> CtIS.upd)
 
@@ -168,6 +195,7 @@ let shape_in_env hf ls env =
      unfs_of_ident ls hf env 
   |> (fun x -> apply_hf_in_env (hf, ls, []) x env)
   |> snd
+  |> isto_of_rsto
 
 (* MK: this is wrong; TODO Misc.fixpoint this *)
 let expand_sto_shape env sto =
@@ -178,10 +206,10 @@ let expand_sto_shape env sto =
         |> M.uncurry CtIS.sh_upd in
       (app :: aps, sto') end ([], sto)
 
-let contract_store sto hfs env =
+let contract_store_shapes sto hfs env =
   List.fold_left begin fun sto ((hf, ls, _) as app) ->
        unfs_of_ident ls hf env
-    |> (fun x -> fold_hf_on_sto app x sto env) end sto hfs
+    |> (fun x -> fold_hf_shapes_on_sto app x sto env) end sto hfs
 
 let expand_cspec_stores cspec env =
      M.map_and_accum CtISp.map_stores begin fun acc sto ->

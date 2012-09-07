@@ -43,17 +43,70 @@ open Misc.Ops
 let mydebug = false
 
 (******************************************************************************)
-(*********************************** Indices **********************************)
+(***************************** Indices and Refts ******************************)
 (******************************************************************************)
 
 
 module IndexSetPrinter = P.MakeSetPrinter (N.IndexSet)
 
+let reft_of_top = 
+  let so = Ast.Sort.t_obj in
+  let vv = Ast.Symbol.value_variable so in
+  FC.make_reft vv so []
+
+let d_reft () r =
+  CM.doc_of_formatter (FC.print_reft_pred None) r
+  (* WORKS: P.dprintf "@[%s@]" (Misc.fsprintf (FC.print_reft_pred None) r) *)
+
+let d_index_reft () (i,r) = 
+  P.dprintf "%a , %a" Index.d_index i d_reft r
+  (*let di = Index.d_index () i in
+  let dc = P.text " , " in
+  let dr = d_reft () r in
+  P.concat (P.concat di dc) dr
+  *)
+
+
 (******************************************************************************)
-(****************************** Type Refinements ******************************)
+(****************************** Heap Function Applications ********************)
 (******************************************************************************)
 
 type refVar = string
+
+and hf_appl = string * Sloc.t list * (refVar * FixConstraint.reft) list
+
+and unkrft =
+  | RefVar of refVar
+  | Reft   of FixConstraint.reft
+
+let d_hf_ls () ls =
+  P.seq (P.text ",") (Sloc.d_sloc ()) ls
+
+let d_unkrft () = function
+  | RefVar rv -> P.dprintf "@[%s@]" rv
+  | Reft   rt -> P.dprintf "@[%a@]" d_reft rt
+
+let d_hf_ref () (s, reft) =
+  P.dprintf "(%s, %a)" s d_reft reft
+
+let d_hf_rs () rs =
+  P.seq (P.text ",") (d_hf_ref ()) rs
+
+let d_hf () (hf, ls, rs) =
+  P.dprintf "@[%s(%a;%a)@]" hf d_hf_ls ls d_hf_rs rs
+
+let d_hfs () hfs =
+  P.seq (P.text ",") (d_hf ()) hfs
+
+let d_unkrfts () us =
+  P.seq (P.text ",") (d_unkrft ()) us
+ 
+
+
+
+(******************************************************************************)
+(****************************** Type Refinements ******************************)
+(******************************************************************************)
 
 module type CTYPE_REFINEMENT = sig
   type t
@@ -80,12 +133,21 @@ end
 
 module VarRefinement = struct
   module IR = IndexRefinement
-  type t = refVar * IR.t
-  let du                = "None"
-  let top               = (du, IR.top)
+  type t                = unkrft list * IR.t
+  let top               = ([], IR.top)
   let is_subref x y     = IR.is_subref (snd x) (snd y)
-  let of_const x        = (du, IR.of_const x)
-  let d_refinement () x = P.dprintf "(%s, %a)" (fst x) IR.d_refinement (snd x)
+  let of_const x        = ([], IR.of_const x)
+  let d_refinement () x = P.dprintf "([%a], %a)"
+    d_unkrfts (fst x) IR.d_refinement (snd x)
+end
+
+module Reft = struct
+  type t           = Index.t * FC.reft
+  let d_refinement = d_index_reft
+  let is_subref    = fun ir1 ir2 -> assert false
+  let of_const     = fun c -> assert false
+  let top          = Index.top, reft_of_top 
+  let ref_of_any   = Index.ind_of_any, reft_of_top
 end
 
 
@@ -104,38 +166,6 @@ let d_binder () = function
   | I i -> P.dprintf "@@%a" Index.d_index i
   | Nil -> P.nil
 
-
-
-
-(******************************************************************************)
-(************************* Refctypes and Friends ******************************)
-(******************************************************************************)
-
-let reft_of_top = 
-  let so = Ast.Sort.t_obj in
-  let vv = Ast.Symbol.value_variable so in
-  FC.make_reft vv so []
-
-let d_reft () r =
-  CM.doc_of_formatter (FC.print_reft_pred None) r
-  (* WORKS: P.dprintf "@[%s@]" (Misc.fsprintf (FC.print_reft_pred None) r) *)
-
-let d_index_reft () (i,r) = 
-  P.dprintf "%a , %a" Index.d_index i d_reft r
-  (*let di = Index.d_index () i in
-  let dc = P.text " , " in
-  let dr = d_reft () r in
-  P.concat (P.concat di dc) dr
-  *)
-
-module Reft = struct
-  type t           = Index.t * FC.reft
-  let d_refinement = d_index_reft
-  let is_subref    = fun ir1 ir2 -> assert false
-  let of_const     = fun c -> assert false
-  let top          = Index.top, reft_of_top 
-  let ref_of_any   = Index.ind_of_any, reft_of_top
-end
 
 (******************************************************************************)
 (***************************** Parameterized Types ****************************)
@@ -184,13 +214,8 @@ and 'a preldesc = { plfields   : (Index.t * 'a prefield) list
 
 and 'a prestore = 'a preldesc Sloc.SlocMap.t
                 * Sv.t list
-                * 'a hf_appl list
+                * hf_appl list
                
-and 'a hf_appl  = string * Sloc.t list * 'a list
-
-and ref_hf_appl = FixConstraint.reft hf_appl
-and ind_hf_appl = Index.t hf_appl
-
 and 'a precfun =
     { args        : (string * 'a prectype) list;  (* arguments *)
       ret         : 'a prectype;                  (* return *)
@@ -311,14 +336,6 @@ let hf_appl_sub sub (hf, ls, rs) =
 
 let hf_appls_sub sub hfs =
   List.map (hf_appl_sub sub) hfs 
-
-let hf_appl_fakemap f (hf, ls, rs) =
-  let rs = List.map (fun r -> f (Int (0, r))) rs  
-        |> List.map (function Int (_, r) -> r) in
-  (hf, ls, rs)
-
-let hf_appls_fakemap f =
-  List.map (hf_appl_fakemap f)
 
 let hf_appl_bloc = function
   (_, l :: _, _) -> l
@@ -589,7 +606,7 @@ module SIGS (T : CTYPE_DEFS) = struct
       (Sloc.t * (T.ldesc * effectptr)) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
-    val sto_of_hfs   : T.R.t hf_appl list -> t
+    val sto_of_hfs   : hf_appl list -> t
     val closed       : t -> t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
@@ -613,12 +630,12 @@ module SIGS (T : CTYPE_DEFS) = struct
     val indices      : t -> Index.t list
     val abstract_empty_slocs : t -> t
     val add_var      : t -> Sv.t -> t
-    val add_app      : t -> T.refinement hf_appl -> t
+    val add_app      : t -> hf_appl -> t
     val rem_app      : t -> string -> S.t -> t
     val vars         : t -> Sv.t list
     val filter_vars  : (Sv.t -> bool) -> t -> t
     val concrete_part : t -> t
-    val hfuns        : t -> T.refinement hf_appl list
+    val hfuns        : t -> hf_appl list
     val cnc          : t -> T.ldesc SLM.t
         
     val d_store_addrs: unit -> t -> P.doc
@@ -873,9 +890,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         |> Misc.curry
   end
 
-  (******************************************************************************)
-  (*********************************** Stores ***********************************)
-  (******************************************************************************)
+(******************************************************************************)
+(*********************************** Stores ***********************************)
+(******************************************************************************)
 
   and Field: SIG.FIELD = struct
     type t = T.field
@@ -1202,7 +1219,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
                          |> Field.map_type 
                          |> LDesc.map 
                          |> Misc.flip SLM.map ds,
-                         vs, hf_appls_fakemap f hfs)
+                         vs, hfs)
       
     let map_variances f_co f_contra sto = map f_co sto
 
@@ -1224,18 +1241,6 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         
     let d_store_addrs () st =
       P.seq (P.text ",") (Sloc.d_sloc ()) (domain st)
-
-    let d_hf_ls () ls =
-      P.seq (P.text ",") (Sloc.d_sloc ()) ls
-
-    let d_hf_rs () rs =
-      P.seq (P.text ",") (T.R.d_refinement ()) rs
-
-    let d_hf_appl () (hf, ls, rs) =
-      P.dprintf "@[%s(%a;%a)@]" hf d_hf_ls ls d_hf_rs rs
-
-    let d_hfs () hfs =
-      P.seq (P.text ",") (d_hf_appl ()) hfs
 
     let d_store () (ds, vs, hfs) =
       if vs <> [] && hfs <> [] then
@@ -1475,9 +1480,10 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     end
   end
 
-  (******************************************************************************)
-  (******************************* Function Types *******************************)
-  (******************************************************************************)
+(******************************************************************************)
+(******************************* Function Types *******************************)
+(******************************************************************************)
+
   and CFun: SIG.CFUN = struct
     type t = T.cfun
         
@@ -1917,9 +1923,10 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 
   end
 
-  (******************************************************************************)
-  (******************************* Expression Maps ******************************)
-  (******************************************************************************)
+(******************************************************************************)
+(******************************* Expression Maps ******************************)
+(******************************************************************************)
+
   module ExpKey = struct
     type t      = Cil.exp
     let compare = compare
@@ -1935,6 +1942,14 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
   let d_ctemap () (em: ctemap): P.doc =
     ExpMapPrinter.d_map "\n" Cil.d_exp CType.d_ctype () em
 end
+
+module RV   = Make (RefVarTypes)
+
+type rvctype  = RV.CType.t
+type rvcfun   = RV.CFun.t
+type rvstore  = RV.Store.t
+type rvcspec  = RV.Spec.t
+type rvctemap = RV.ctemap
 
 module I    = Make (IndexTypes)
 

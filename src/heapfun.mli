@@ -24,38 +24,48 @@
 
 type intrs = Sloc.t list
 
-type 'a def
+type def
 
-type ref_def = FixConstraint.reft def
-type var_def = Ctypes.VarRefinement.t def
-type ind_def = Ctypes.I.T.refinement def
+type env  = def FixMisc.StringMap.t
 
-type env  = var_def FixMisc.StringMap.t
+val flocs_of : def -> Sloc.t list
+val frefs_of : def -> Ctypes.VarRefinement.t list
+val unfs_of  : def -> intrs list
+val rhs_of   : def -> Ctypes.VarRefinement.t Ctypes.prestore
 
-val flocs_of : 'a def -> Sloc.t list
-val frefs_of : 'a def -> 'a list
-val unfs_of  : 'a def -> intrs list
-val rhs_of   : 'a def -> 'a Ctypes.prestore
-
-val def_of_intlist : var_def
+val def_of_intlist : def
 val test_env : env
 
 val fresh_unfs_of_hf : Sloc.t -> string -> env -> intrs list
 
-val gen : 'a Ctypes.hf_appl -> intrs list -> 
+val fold_hf_on_sto   : Ctypes.hf_appl  ->
+                       intrs list      ->
+                       Ctypes.rvstore  ->
+                       env             ->
+                       Ctypes.refstore
+
+val fold_hf_shapes_on_sto   : Ctypes.hf_appl ->
+                              intrs list     ->
+                              Ctypes.store   ->
+                              env            ->
+                              Ctypes.store
+
+
+
+val gen : Ctypes.hf_appl     -> intrs list   ->
           Sloc.SlocSlocSet.t -> Ctypes.store ->
-          env -> Sloc.SlocSlocSet.t * Ctypes.store
+          env                -> Sloc.SlocSlocSet.t * Ctypes.store
 
 val ins : Sloc.t -> Sloc.t list -> intrs list -> 
           Sloc.SlocSlocSet.t -> Ctypes.store -> env ->
-          Sloc.SlocSlocSet.t * Ctypes.store
+          Sloc.SlocSlocSet.t  * Ctypes.store
 
-val shape_in_env : string -> Sloc.t list -> env ->
-                   Ctypes.store
+val shape_in_env : string -> Sloc.t list ->
+                   env    -> Ctypes.store
                    
-val expand_sto_shape     : env -> Ctypes.store -> Ctypes.ind_hf_appl list * Ctypes.store
+val expand_sto_shape : env -> Ctypes.store -> Ctypes.hf_appl list * Ctypes.store
 
-val expand_cspec_stores  : Ctypes.cspec -> env -> Ctypes.cspec
+val expand_cspec_stores    : Ctypes.cspec -> env -> Ctypes.cspec
 
-val contract_store       : Ctypes.store -> Ctypes.ind_hf_appl list
-                                        -> env -> Ctypes.store    
+val contract_store_shapes  : Ctypes.store -> Ctypes.hf_appl list
+                                        -> env -> Ctypes.store

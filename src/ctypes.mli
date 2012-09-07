@@ -28,6 +28,24 @@ type binder  = N of Ast.Symbol.t
 
 val d_binder : unit -> binder -> Pretty.doc
 
+(******************************************************************************)
+(****************************** Heap Function Applications ********************)
+(******************************************************************************)
+
+type refVar
+
+type hf_appl = string * Sloc.t list * (refVar * FixConstraint.reft) list
+
+type unkrft =
+  | RefVar of refVar
+  | Reft   of FixConstraint.reft
+
+val hf_appl_binding_of : Sloc.t -> hf_appl list -> hf_appl option
+val hf_appl_binds      : Sloc.t -> hf_appl -> bool
+val hf_appl_arg_of     : Sloc.t -> hf_appl list
+                                -> hf_appl list * hf_appl list
+val hf_appls_sub       : Sloc.Subst.t -> hf_appl list -> hf_appl list
+
 
 (******************************************************************************)
 (****************************** Type Refinements ******************************)
@@ -41,11 +59,9 @@ module type CTYPE_REFINEMENT = sig
   val d_refinement : unit -> t -> Pretty.doc
 end
 
-type refVar = string
-
 module IndexRefinement : CTYPE_REFINEMENT with type t = Index.t
 module VarRefinement   :
-  CTYPE_REFINEMENT with type t = refVar * IndexRefinement.t
+  CTYPE_REFINEMENT with type t = unkrft list * IndexRefinement.t
 module Reft            : CTYPE_REFINEMENT with type t = Index.t * FixConstraint.reft
 
 type fieldinfo  = {fname : string option; ftype : Cil.typ option} 
@@ -96,17 +112,6 @@ and  'a precfun =
       sto_out     : 'a prestore;                  (* out store *)
       effects     : effectset;                    (* heap effects *)
     }
-
-type 'a hf_appl  = string * Sloc.t list * 'a list
-
-type ref_hf_appl = FixConstraint.reft hf_appl
-type ind_hf_appl = Index.t hf_appl
-
-val hf_appl_binding_of : Sloc.t -> 'a hf_appl list -> 'a hf_appl option
-val hf_appl_binds      : Sloc.t -> 'a hf_appl -> bool
-val hf_appl_arg_of     : Sloc.t -> 'a hf_appl list
-                                -> 'a hf_appl list * 'a hf_appl list
-val hf_appls_sub       : Sloc.Subst.t -> 'a hf_appl list -> 'a hf_appl list
 
 type specType =
   | HasShape
@@ -276,7 +281,7 @@ module type S = sig
       (Sloc.t * (T.ldesc * effectptr)) list
     val domain       : t -> Sloc.t list
     val mem          : t -> Sloc.t -> bool
-    val sto_of_hfs   : T.R.t hf_appl list -> t
+    val sto_of_hfs   : hf_appl list -> t
     val closed       : t -> t -> bool
     val reachable    : t -> Sloc.t -> Sloc.t list
     val restrict     : t -> Sloc.t list -> t
@@ -300,12 +305,12 @@ module type S = sig
     val indices      : t -> Index.t list
     val abstract_empty_slocs : t -> t
     val add_var      : t -> Svar.t -> t
-    val add_app      : t -> T.refinement hf_appl -> t
+    val add_app      : t -> hf_appl -> t
     val rem_app      : t -> string -> Sloc.t -> t
     val vars         : t -> Svar.t list
     val filter_vars  : (Svar.t -> bool) -> t -> t
     val concrete_part : t -> t
-    val hfuns        : t -> T.refinement hf_appl list
+    val hfuns        : t -> hf_appl list
     val cnc          : t -> T.ldesc Sloc.SlocMap.t
 
     val d_store_addrs: unit -> t -> Pretty.doc
@@ -438,6 +443,7 @@ module Make (T: CTYPE_DEFS) : S with module T = T
 
 module IndexTypes  : CTYPE_DEFS with module R = IndexRefinement
 module RefVarTypes : CTYPE_DEFS with module R = VarRefinement
+module RV          : S with module T = RefVarTypes
 module I           : S with module T = IndexTypes
 
 val d_specTypeRel : unit -> specType -> Pretty.doc
@@ -446,6 +452,12 @@ val specTypeMax   : specType -> specType -> specType
 (******************************************************************************)
 (*************************** Convenient Type Aliases **************************)
 (******************************************************************************)
+
+type rvctype  = RV.CType.t
+type rvcfun   = RV.CFun.t
+type rvstore  = RV.Store.t
+type rvcspec  = RV.Spec.t
+type rvctemap = RV.ctemap
 
 type ctype  = I.CType.t
 type cfun   = I.CFun.t

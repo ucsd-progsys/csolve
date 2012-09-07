@@ -683,7 +683,7 @@ let globalFunEnv cil spec =
 let contract_shp env _ ssh hfs =
   let (_, sh) = Misc.maybe ssh in
   let hfs     = Misc.maybe hfs in
-  {sh with Sh.store = Heapfun.contract_store sh.Sh.store hfs env}
+  {sh with Sh.store = Heapfun.contract_store_shapes sh.Sh.store hfs env}
 
 let annas = SM.map (fun sh -> sh.Sh.anna)
 
@@ -698,22 +698,8 @@ let infer_shapes cil tgr spec scim vim =
   let xsann       = SM.map   (fun (sub, sh) -> sub, sh.Sh.anna) xsm in
   let sm          = SM.mapk  (infer_hfs xsann fsp hfenv) scim
                  |> SM.map2k (contract_shp hfenv) xsm in
-  let _ = sm
-       |> SM.find "test"
-       |> P.printf "@[test: %a@]@!" d_shape in
-  (*sm
-  >> begin fun x ->    SM.find "main" x
-                    |> P.printf "@[main: %a@]@!" d_shape end*)
-  assertf "done"
-  (*HRA.annotate_shpm scim sm
-  |> FinalFields.dummy_infer_final_fields tgr spec*)
-  (*>> begin fun _ ->    CSpec.funspec spec
-                    |> SM.find "magic"
-                    |> fst
-                    |> P.printf "@[magic: %a@]@!" CFun.d_cfun end
-  >> begin fun _ ->    CSpec.funspec spec
-                    |> SM.find "test"
-                    |> fst
-                    |> P.printf "@[test: %a@]@!" CFun.d_cfun end
-  >> begin fun x ->    SM.find "test" x
-                    |> P.printf "@[test: %a@]" d_shape end*)
+  HRA.annotate_shpm scim spec sm
+  (*|> FinalFields.dummy_infer_final_fields tgr spec*)
+  >> begin fun x ->    SM.find "magic" x
+                    |> P.printf "@[main: %a@]" d_shape end
+  >> (fun _ -> assertf "done")
