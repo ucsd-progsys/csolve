@@ -52,13 +52,13 @@ val fold_hf_shapes_on_sto   : Ctypes.hf_appl ->
 
 
 
-val gen : Ctypes.hf_appl     -> intrs list   ->
-          Sloc.SlocSlocSet.t -> Ctypes.store ->
-          env                -> Sloc.SlocSlocSet.t * Ctypes.store
+val gen_shp : Ctypes.hf_appl     -> intrs list   ->
+              Sloc.SlocSlocSet.t -> Ctypes.store ->
+              env                -> Sloc.SlocSlocSet.t * Ctypes.store
 
-val ins : Sloc.t -> Sloc.t list -> intrs list -> 
-          Sloc.SlocSlocSet.t -> Ctypes.store -> env ->
-          Sloc.SlocSlocSet.t  * Ctypes.store
+val ins_shp : Sloc.t -> Sloc.t list -> intrs list -> 
+              Sloc.SlocSlocSet.t -> Ctypes.store -> env ->
+              Sloc.SlocSlocSet.t  * Ctypes.store
 
 val shape_in_env : string -> Sloc.t list ->
                    env    -> Ctypes.store

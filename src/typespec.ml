@@ -466,7 +466,6 @@ and add_app_to_sto sto l ats =
     |> M.maybe_list
     |> M.ex_one "add_app_to_sto: wrong number of annotated heap functions"
     |> RS.add_app sto
-    >> (fun _ -> E.error "good news! HEAPFUN") (* DEBUG *)
   else sto
 
 and closeTypeInStoreAux (srcloc : Cil.location) mem sub sto t = match normalizeType t with

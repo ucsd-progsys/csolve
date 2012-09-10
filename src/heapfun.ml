@@ -168,7 +168,7 @@ let fold_hf_shapes_on_sto ((hf, ls, _) as app) ins sto env =
     else
       sto
  
-let ins l ls ins deps sto env =
+let ins_shp l ls ins deps sto env =
   let (hf, ls', _) =
        CtIS.hfuns sto
     |> Ct.hf_appl_binding_of l
@@ -179,11 +179,11 @@ let ins l ls ins deps sto env =
   |> M.app_snd (CtIS.remove sto l |> CtIS.upd)
 
 
-let gen ((hf, ls, _) as app) ins deps sto env =
+let gen_shp ((hf, ls, _) as app) ins deps sto env =
   let deps = M.combine_prefix ls ins |>
              List.fold_left begin fun deps ll ->
                try SlSS.remove ll deps with Not_found -> deps end deps in
-  let sto  = fold_hf_on_sto (hf, ls, []) ins sto env in
+  let sto  = fold_hf_shapes_on_sto (hf, ls, []) ins sto env in
   deps, sto
 
 let unfs_of_ident ls hf env =

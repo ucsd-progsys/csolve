@@ -700,6 +700,6 @@ let infer_shapes cil tgr spec scim vim =
                  |> SM.map2k (contract_shp hfenv) xsm in
   HRA.annotate_shpm scim spec sm
   (*|> FinalFields.dummy_infer_final_fields tgr spec*)
-  >> begin fun x ->    SM.find "magic" x
+  >> begin fun x ->    SM.find "main" x
                     |> P.printf "@[main: %a@]" d_shape end
   >> (fun _ -> assertf "done")

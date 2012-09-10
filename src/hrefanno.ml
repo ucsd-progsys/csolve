@@ -143,7 +143,7 @@ let generalize_cnc sto al cl =
 
 let generalize_hf sto cl ((hf, ls, _) as app) ins env =
   let _      = asserts (cl = (List.hd ins |> List.hd)) "generalize_hf" in
-  let _, sto = Hf.gen app ins SlSS.empty sto env in
+  let _, sto = Hf.gen_shp app ins SlSS.empty sto env in
   ([mk_fold_hf app ins], sto)
 
 let generalize sto gst ctm me appm al =
@@ -167,7 +167,7 @@ let instantiate_hf sto appm me env v al cl =
   let (hf, _, _) as app =
     CtIS.hfuns sto |> Ct.hf_appl_binding_of al |> M.maybe in
   let ins    = Hf.fresh_unfs_of_hf cl hf env in
-  let _, sto = Hf.ins al [al] ins SlSS.empty sto env in
+  let _, sto = Hf.ins_shp al [al] ins SlSS.empty sto env in
   let _      = set_cl me v cl in
   let appm   = SLM.add al (App(cl, app, ins)) appm in
   ([mk_unfold_hf al ins], sto, appm)
