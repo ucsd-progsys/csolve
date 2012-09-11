@@ -66,6 +66,11 @@ type appm = app SLM.t
 
 type me = (string, Sl.t) Hashtbl.t * (string, Sl.t) Hashtbl.t
 
+let subst_of_ann = function
+  | RA.New (x, y) -> Some (x, y)
+  | RA.NewC (x, y, _) -> Some (x, y)
+  | _ -> None
+
 let cl_of_me = snd
 let al_of_me = fst
 let get_l me v = v.vname |> M.hashtbl_maybe_find me
@@ -406,9 +411,11 @@ let annotate_instr spec env ans sto gst ctm me appm = function
       (newC ++ anns, sto, gst, me, appm)
 
   | Call (rv, Lval ((Var fv), NoOffset), _, _) ->
+      let subs   = ans |>: subst_of_ann |> M.maybe_list in
       let ca_sto = CtISp.funspec spec 
                 |> SM.find fv.vname |> fst
-                |> (fun x -> x.Ct.sto_out) in
+                |> (fun x -> x.Ct.sto_out)
+                |> CtIS.subs subs in
       let anns, sto = actually_fold_all_open_locs me env ans sto appm in
       let sto       = CtIS.upd sto ca_sto in
       let (sto, appm), anns = M.mapfold (gen_ann_if_new ctm gst me) (sto, appm) ans in

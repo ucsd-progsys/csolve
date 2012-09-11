@@ -593,14 +593,9 @@ let infer_shape tgr fe ve gst spec vim fn sci =
  *  conca annot in*)
     (sub, Sh.create sci (VM.to_list vtyps) em sto bas)
 
-let subst_of_ann = function
-  | RA.New (x, y) -> Some (x, y)
-  | RA.NewC (x, y, _) -> Some (x, y)
-  | _ -> None
-
 let hfs_instr env cfm sub ann = function
   | C.Call (_, C.Lval ((C.Var fv), C.NoOffset), _,_) ->
-      let ann = ann |>: subst_of_ann |> Misc.maybe_list in
+      let ann = ann |>: HRA.subst_of_ann |> Misc.maybe_list in
          SM.find fv.C.vname cfm
       |> fun cf -> cf.Ctypes.sto_out
       |> Hf.expand_sto_shape env
@@ -700,6 +695,6 @@ let infer_shapes cil tgr spec scim vim =
                  |> SM.map2k (contract_shp hfenv) xsm in
   HRA.annotate_shpm scim spec sm
   (*|> FinalFields.dummy_infer_final_fields tgr spec*)
-  >> begin fun x ->    SM.find "main" x
+  >> begin fun x ->    SM.find "test" x
                     |> P.printf "@[main: %a@]" d_shape end
   >> (fun _ -> assertf "done")
