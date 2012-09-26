@@ -69,16 +69,27 @@ type me = (string, Sl.t) Hashtbl.t * (string, Sl.t) Hashtbl.t
 let subst_of_ann = function
   | RA.New (x, y) -> Some (x, y)
   | RA.NewC (x, y, _) -> Some (x, y)
-  | _ -> None
+  | _ -> None 
+
+let assert_al l s = asserts (Sl.is_abstract l) s
+let assert_cl l s = asserts (Sl.is_concrete l) s
 
 let cl_of_me = snd
 let al_of_me = fst
 let get_l me v = v.vname |> M.hashtbl_maybe_find me
 let set_l me v = v.vname |> Hashtbl.replace me
-let get_al me = al_of_me me |> get_l
-let get_cl me = cl_of_me me |> get_l
-let set_cl me = cl_of_me me |> set_l
-let set_al me = al_of_me me |> set_l
+
+let get_al me  = al_of_me me |> get_l |>
+  fun f v -> f v |>>| M.flip assert_al "get_al"
+
+let get_cl me  = cl_of_me me |> get_l |>
+  fun f v -> f v |>>| M.flip assert_cl "get_cl"
+
+let set_al me  = al_of_me me |> set_l |>
+  fun f v l -> assert_al l "set_al"; f v l
+
+let set_cl me  = cl_of_me me |> set_l |>
+  fun f v l -> assert_cl l "set_cl"; f v l
 
 let maybe_set_cl me v = function
   | Some cl -> set_cl me v cl
@@ -190,10 +201,8 @@ let instantiate_aux sto gst ctm me appm v al cl =
   |> (fun (ann, sto, appm) -> (ann, sto, gst, me, appm))
 
 let instantiate sto gst ctm me appm v al cl =
-  let _ = asserts (Sl.is_abstract al) "instantiate" in
-  let _ = asserts (Sl.is_concrete cl) "instantiate" in
-  (*let _ = P.printf "@[INST_STORE(%a): %a@]@!@!" Sl.d_sloc cl CtIS.d_store sto
-   * in*)
+  let _ = assert_al al "instantiate aloc" in
+  let _ = assert_cl cl "instantiate cloc" in
   if is_unf_by appm al cl then
     ([], sto, gst, me, appm)
   else if SLM.mem al appm then
@@ -285,12 +294,14 @@ let annotate_read sto gst ctm me appm e =
   let v  = CM.referenced_var_of_exp e in
   let al = al_of_expr ctm me e |> M.maybe in
   let cl = possibly_fresh_cl_of_expr ctm me e in
+  let _  = assert_cl cl "annotate_read" in
     instantiate sto gst ctm me appm v al cl
 
 let annotate_write sto gst ctm me appm e ct =
   let v     = CM.referenced_var_of_exp e in
   let al    = al_of_expr ctm me e |> M.maybe in
   let cl    = possibly_fresh_cl_of_expr ctm me e in
+  let _     = assert_cl cl "annotate_write" in
   let il    = ind_of_expr ctm e in
     instantiate sto gst ctm me appm v al cl
   (* check subtyping of ct vs sto' |> find |> cl |> find |> il *)
@@ -333,8 +344,8 @@ let annotate_set sto gst ctm me appm = function
       assertf "annotate_set: unknown set"
 
 let conc_malloc me x y v =
-  let _ = assert (Sl.is_abstract x) in
   let _ = assert (Sl.is_abstract y) in
+  let _ = assert (not (Sl.is_abstract x)) in
   match get_al me v with
   | Some al -> always_get_cl me al v
   | None    -> set_cl me v y; always_get_cl me y v
@@ -349,7 +360,7 @@ let conc_lv ctm me = function
 
 let gen_ann_if_new ctm gst me (sto, appm) = function
   | RA.New (x, y) as nan ->
-    let _= asserts (Sl.is_abstract y) "concretize_new" in
+    let _= assert_al y "concretize_new" in
     if Sl.is_abstract x then
       if is_unf appm y |> M.maybe_bool then
         let (ann, sto, gst, me, appm) =
@@ -396,20 +407,32 @@ let annotate_instr spec env ans sto gst ctm me appm = function
   | Call (_, Lval ((Var fv), _), _, _) when fv.vname = "csolve_fold_all" ->
       E.error "csolve_fold_all unsupported"; assert false
 
-      (* Shape inference only creates an aloc for this malloc. we need to create
-       * a cloc*)
-      (* i may actually need to replace the New annot with the NewC annot... *)
+  | Call (_, Lval ((Var fv), NoOffset), _, _) when
+      fv.vname = "malloc" && ans = [] ->
+      let _ = P.eprintf "@[ERROR: malloc seen without New or NewC\n@^@]" in
+      let _ = flush stderr in
+      assert false
+
+  (* this is what i think should be happening: infct should be producing 
+   * only alocs, and this should immediately concretize that aloc
+   * since we know a malloc always produces something concrete. 
+   *
+   * what is happening: New x, y <-- x is cloc?
+   *)
   | Call (rv, Lval ((Var fv), NoOffset), _, _) when fv.vname = "malloc" ->
-      let v = (rv |> M.maybe) |> var_of_lv in (* this might not work *)
+      let _    = P.eprintf "@[malloc with annots: %a@]" RA.d_annotations ans in
+      let subs = ans |>: subst_of_ann |> M.maybe_list in
+      let v    = rv  |> M.maybe       |> var_of_lv    in
       let newC, (al, cl) = begin match ans with 
         | [RA.New (x, y)] ->
             let cl = conc_malloc me x y v in
             [RA.NewC (x, y, cl)], (y, cl)
         | _            -> 
           E.error "annotate_malloc"; assertf "annotate_malloc" end in
+      let _    = assert_cl cl "always_get_cl -> call_malloc" in
       let (anns, sto, gst, me, appm) = instantiate sto gst ctm me appm v al cl in
       (newC ++ anns, sto, gst, me, appm)
-
+(* *)
   | Call (rv, Lval ((Var fv), NoOffset), _, _) ->
       let subs   = ans |>: subst_of_ann |> M.maybe_list in
       let ca_sto = CtISp.funspec spec 
@@ -420,7 +443,7 @@ let annotate_instr spec env ans sto gst ctm me appm = function
       let sto       = CtIS.upd sto ca_sto in
       let (sto, appm), anns = M.mapfold (gen_ann_if_new ctm gst me) (sto, appm) ans in
       (*let conc, anns' = Misc.mapfold generalize conc globalslocs in*)
-      let anns = List.concat anns in
+      let anns = ans @ List.concat anns in
       let _ = rv |>> conc_lv ctm me |> ignore in
       (anns, sto, gst, me, appm) 
 

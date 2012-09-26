@@ -1798,7 +1798,7 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       let cf = {cf with args = List.map (Misc.app_snd <| subs_frefs sub) cf.args;
 	                 ret = subs_frefs sub cf.ret} in
       let (cf, tsub, tinst) = instantiate_tvars srcinf cf args in
-      let (cf, isub, hsub) = instantiate_store srcinf cf args sto in
+      let (cf, isub, hsub)  = instantiate_store srcinf cf args sto in
       (cf, S.Subst.compose isub sub, tsub, tinst, hsub)
         
     let quantified_svars cf = cf.quant_svars

@@ -3,29 +3,19 @@
 #include <stdlib.h>
 
 
-typedef struct list {
+struct list {
   int id;
-  struct list * VALIDPTR n;
+  struct list * START VALIDPTR n;
 };
 
-int main(int argc, char ** argv)
+int main(struct list * START INTLIST NNVALIDPTR x)
 {
-  test(); 
+  if(x == NULL)
+    x -> n = malloc(sizeof(struct list));
 
   return 0;
 }
 
-struct list * INTLIST test()
-{
-  if (len <= 0)
-    return NULL;
-
-  struct list * l;
-  struct list * root = l = malloc();
-  root -> next = malloc();
-
-  return root;
-}
 
 
 

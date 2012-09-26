@@ -42,6 +42,8 @@ module Ops = struct
 
   let (>>) x f = f x; x
 
+  let (|>>|) xo f = (match xo with Some x -> f x | _ -> ()); xo
+
   let (|>>) xo f = match xo with None -> None | Some x -> f x
 
   let (|>:) xs f = List.map f xs
