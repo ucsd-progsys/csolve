@@ -348,7 +348,7 @@ let conc_malloc me x y v =
   let _ = assert (not (Sl.is_abstract x)) in
   match get_al me v with
   | Some al -> always_get_cl me al v
-  | None    -> set_cl me v y; always_get_cl me y v
+  | None    -> set_cl me v x; always_get_cl me y v
 
 let conc_lv ctm me = function 
   | (Var v, _) as lv ->
