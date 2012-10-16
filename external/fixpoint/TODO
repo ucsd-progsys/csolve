@@ -1,39 +1,28 @@
-Adding Type Constructors To Fixpoint
- 
-  type loc = 
-      | Loc  of string 
-      | Lvar of int
-      | LFun 
+Extensible Theories (csolve/external/fixpoint)
+==============================================
 
-  type t =
-      | Int
-      | Bool
-      | Obj
-      | Var of int              (* type-var *)
-      | Ptr of loc              (* c-pointer *)
-      | Func of int * t list    (* type-var-arity, in-types @ [out-type] *)
-      | Num                     (* kind, for numeric tyvars -- ptr(loc(s)) -- *)
+[OK] theories.mli 
 
-    type sub = { locs: (int * string) list; 
-                 vars: (int * t) list; }
+[OK] external/fixpoint/tests/sets.fq
+   
+3. tpZ3.ml 
 
-1. Update types 
+   - update type t 
+        itycm : Map tycon    Th.sortDef
+        isymm : Map Symbol.t Th.symDef
+  thy_tym
+  thy_sym
+   call get_theories to encode things into Z3)
 
-2. Write: val t_app : tycon 
+   - OK: add fun-sort bindings to sortchecking environment
+   - HACK: z3App/Thy  -- lookup table?
+   - HACK: z3Type/Thy -- lookup table?
+    OK!
+
+    
+
+4. theories.ml
+
+    > actual wrapper for SET API (and other things if you wish)
 
 
-3. Extend:
-    , Sort.compat
-    , Sort.unify
-    , Sort.apply
-    , Ast.sortcheck_pred
-    , Ast.sortcheck_expr
-
-HEREHEREHEREHERE
-
-4. Extend parser
-
-5. Re-run C regressions.
-
-6. Re-run Hs regressions.
-7. Re-write/Run Hs List tests (tests/pos/meas5.hs)

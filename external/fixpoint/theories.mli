@@ -20,20 +20,20 @@
  * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  *)
 
-type embSort = (Z3.context -> Z3.sort list -> Z3.sort) option
+type symDef  = { sy_name  : Ast.Symbol.t
+               ; sy_arity : int
+               ; sy_sort  : Ast.Sort.t
+               ; sy_emb   : Z3.context -> Z3.sort list -> Z3.ast list -> Z3.ast
+               }
 
-type embSym  = (Z3.context -> Z3.sort list -> Z3.ast list -> Z3.ast) option
+type sortDef = { so_name  : Ast.Sort.tycon
+               ; so_arity : int
+               ; so_emb   : Z3.context -> Z3.sort list -> Z3.sort 
+               }
 
-type def     = Sym  of Symbol.t   
-                    *  int 
-                    *  Sort.t
-                    *  embSym
-                    
-             | Sort of Sort.tycon 
-                    * int 
-                    * embSort 
+type def     = Sym of symDef | Sort of sortDef
 
 type t       = def list
 
-val get_theories : unit -> t 
-
+val theories : unit -> t 
+val symbols  : unit -> (Ast.Symbol.t * Ast.Sort.t)

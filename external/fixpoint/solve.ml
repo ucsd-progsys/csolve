@@ -211,7 +211,7 @@ let solve me s =
 
 (* API *)
 let create cfg kf =
-  let gts = SM.to_list cfg.Cg.uops in
+  let gts = (SM.to_list cfg.Cg.uops) ++ (Theories.symbols ())           in
   let sri = cfg.Cg.cs
             >> Co.logPrintf "Pre-Simplify Stats\n%a" print_constr_stats
             |> BS.time  "Constant Env" (List.map (C.add_consts_t gts))
