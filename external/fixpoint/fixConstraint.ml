@@ -143,7 +143,6 @@ let is_conc_rhs {rhs = (_,_,ras)} =
   >> (fun rv -> if rv then (asserts (List.for_all is_conc_refa ras) "is_conc_rhs"))
 
 
-
 (* API *)
 let kvars_of_t {nontriv = env; lhs = lhs; rhs = rhs} =
   [lhs; rhs] 
