@@ -168,7 +168,8 @@ module Sort =
 
 
     let func_of_t = function
-      | Func (i, ts) -> Some (i, ts |> Misc.list_snoc |> Misc.swap)
+      | Func (i, ts) -> let (xts, t) = ts |> Misc.list_snoc |> Misc.swap in 
+                        Some (i, xts, t)
       | _            -> None
 
     let ptr_of_t = function
@@ -1195,7 +1196,7 @@ and sortcheck_pred f p =
 
 let uf_arity f uf =  
   match sortcheck_sym f uf with None -> None | Some t -> 
-    match Sort.func_of_t with None -> None | Some (i, _) -> 
+    match Sort.func_of_t with None -> None | Some (i,_,_) -> 
       Some i
  
 (* API *)
