@@ -20,6 +20,9 @@
  * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  *)
 
+
+module Misc = FixMisc
+
 type symDef  = { sy_name  : Ast.Symbol.t
                ; sy_arity : int
                ; sy_sort  : Ast.Sort.t
@@ -35,15 +38,20 @@ type def     = Sym of symDef | Sort of sortDef
 
 type t       = def list
 
-(***************************************************************************)
-
 
 (***************************************************************************)
+(******************** Theory of Sets ***************************************)
+(***************************************************************************)
 
-let theories () = failwith "TBD: implement theories!"
+(***************************************************************************)
+(***************************************************************************)
+(***************************************************************************)
+
+let theories () = 
+  failwith "TBD: implement theories!"
 
 let symbols  () = 
-  List.map_partial begin function 
+  Misc.map_partial begin function 
     | Sym {sy_name = x; sy_sort = t} -> Some (x, t) 
     | _                              -> None
   end (theories ())

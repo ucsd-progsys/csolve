@@ -58,7 +58,7 @@ type t = {
   mutable count : int;
   mutable bnd   : int;
   thy_sortm     : (So.tycon, Th.sortDef) H.t;
-  thy_symm      : (Symbol.t, Th.symDef)  H.t;
+  thy_symm      : (Sy.t,     Th.symDef)  H.t;
 }
 
 (*************************************************************************)
@@ -149,7 +149,7 @@ let funSort env s =
       if is_select s then select_t else 
         failure "ERROR: could not type function %s in TPZ3 \n" (Sy.to_string s) 
 
-let z3Type me t =
+let rec z3Type me t =
   Misc.do_memo me.tydt begin fun t -> 
     if So.is_bool t then me.tbool else
       if So.is_int t then me.tint else
@@ -161,8 +161,9 @@ let z3Type me t =
 and z3TypeThy me t = match So.app_of_t t with
  | Some (c, ts) when H.mem me.thy_sortm c -> 
      let emb = H.find me.thy_sortm c                      in
-     let _   = asserts (List.length ts = sd.Th.so_arity) 
-                "Mismatched args for tycon %s" c          in
+     let _   = asserts (List.length ts = emb.Th.so_arity) 
+                "Mismatched args for tycon %s" 
+                (So.tycon_string c)                       in
      Some (emb.Th.so_emb me.c <| List.map (z3Type me) ts)
  | _ -> None 
  
@@ -256,10 +257,12 @@ and z3AppThy me env emb f es =
   match A.sortcheck_app (Misc.flip SM.maybe_find env) f es with 
     | Some (s, t) ->
         let zts = So.sub_args s |> List.map (snd <+> z3Type me) in
-        let zes = es            |> List.map z3Exp me env        in
+        let zes = es            |> List.map (z3Exp me env)      in
         emb.Th.sy_emb me.c zts zes
-    | None -> 
-        assertf "z3AppThy: sort error %s" (E.to_string E.eApp(f, es))
+    | None ->
+        A.eApp (f, es)
+        |> E.to_string
+        |> assertf "z3AppThy: sort error %s"
 
 and z3Mul me env = function
   | ((A.Con (A.Constant.Int i), _), e) 
@@ -449,17 +452,32 @@ let handle_vv me env vv =
 (********************************* API **********************************)
 (************************************************************************)
 
+let create_theories () = 
+  let sortm = H.create 17 in
+  let symm  = H.create 17 in
+  foreach (Th.theories ()) begin function 
+    | Th.Sym  x -> H.add symm  x.Th.sy_name x
+    | Th.Sort y -> H.add sortm y.Th.so_name y
+  end;
+  (sortm, symm)
+
+
 (* API *)
 let create ts env ps consts =
-  let _  = asserts (ts = []) "ERROR: TPZ3.create non-empty sorts!" in
-  let c  = Z3.mk_context_x [|("MODEL", "false"); ("MODEL_PARTIAL", "true")|] in
-  let me = {c     = c; 
-            tint  = Z3.mk_int_sort c; 
-            tbool = Z3.mk_bool_sort c; 
-            tydt  = H.create 37; 
-            vart  = H.create 37; 
-            funt  = H.create 37; 
-            vars  = []; count = 0; bnd = 0} in
+  let _        = asserts (ts = []) "ERROR: TPZ3.create non-empty sorts!" in
+  let c        = Z3.mk_context_x [|("MODEL", "false"); ("MODEL_PARTIAL", "true")|] in
+  let som, sym = create_theories () in 
+  let me       = { c     = c; 
+                   tint  = Z3.mk_int_sort c; 
+                   tbool = Z3.mk_bool_sort c; 
+                   tydt  = H.create 37; 
+                   vart  = H.create 37; 
+                   funt  = H.create 37; 
+                   vars  = []; count = 0; bnd = 0;
+                   thy_sortm = som; 
+                   thy_symm  = sym 
+                 } 
+  in
   let _  = List.iter (z3Pred me env <+> assert_axiom me) (axioms ++ ps) in
   let _  = if Misc.nonnull consts 
            then (z3Distinct me env consts |> assert_axiom me) 

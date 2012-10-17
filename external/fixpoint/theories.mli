@@ -36,4 +36,4 @@ type def     = Sym of symDef | Sort of sortDef
 type t       = def list
 
 val theories : unit -> t 
-val symbols  : unit -> (Ast.Symbol.t * Ast.Sort.t)
+val symbols  : unit -> (Ast.Symbol.t * Ast.Sort.t) list

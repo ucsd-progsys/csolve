@@ -51,6 +51,7 @@ module Sort :
     type sub
    
     val tycon       : string -> tycon
+    val tycon_string: tycon -> string
 
     val to_string   : t -> string
     val print       : Format.formatter -> t -> unit

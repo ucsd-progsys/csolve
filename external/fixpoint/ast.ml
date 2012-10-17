@@ -69,7 +69,8 @@ module Sort =
     type sub = { locs: (int * string) list; 
                  vars: (int * t) list; }
 
-    
+   
+    let tycon_string x = x
     (*
     let is_loc_string s = 
       let re = Str.regexp "[a-zA-Z]+[0-9]+" in 
@@ -279,7 +280,7 @@ module Sort =
     let sub_args s = List.sort compare s.vars
 
     (* API *)
-    let check_arity n s = s.vars |>: fst |> Misc.sort_and_compact |> (=) n
+    let check_arity n s = s.vars |>: fst |> Misc.sort_and_compact |> List.length |> (=) n
       (* if ... then s else assertf "Type Inst. With Wrong Arity!" *)
 
   end
@@ -1196,13 +1197,13 @@ and sortcheck_pred f p =
 
 let uf_arity f uf =  
   match sortcheck_sym f uf with None -> None | Some t -> 
-    match Sort.func_of_t with None -> None | Some (i,_,_) -> 
+    match Sort.func_of_t t with None -> None | Some (i,_,_) -> 
       Some i
  
 (* API *)
 let sortcheck_app f uf es = 
   match uf_arity f uf, sortcheck_app_sub f None uf es with 
-    | (Some n , Some (s, t)) when check_arity n s -> Some (s, t)
+    | (Some n , Some (s, t)) when Sort.check_arity n s -> Some (s, t)
     | _                                           -> None
 
 (*
