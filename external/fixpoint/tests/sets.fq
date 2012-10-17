@@ -1,12 +1,12 @@
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } ]
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } ]
   grd true
   lhs {VV : bool | [? Set_mem(1, s0)]}
   rhs {VV : bool | [(0 = 1)]}
   id 1 
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } ]
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } ]
   grd true
   lhs {VV : bool | [? Set_mem(2, s0)]}
   rhs {VV : bool | [(0 = 1)]}
@@ -14,14 +14,14 @@ constraint:
 
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } ]
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } ]
   grd true
   lhs {VV : bool | [? Set_mem(3, s0)]}
   rhs {VV : bool | [(0 = 1)]}
   id 3
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } 
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } 
       ; s1 : {VV : Set_Set int | VV = Set_cup(s0, Set_sng(1))}
       ; s2 : {VV : Set_Set int | VV = Set_cup(s1, Set_sng(2))}
       ; s3 : {VV : Set_Set int | VV = Set_cup(s2, Set_sng(3))} 
@@ -32,7 +32,7 @@ constraint:
   id 4
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } 
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } 
       ; s1 : {VV : Set_Set int | VV = Set_cup(s0, Set_sng(1))}
       ; s2 : {VV : Set_Set int | VV = Set_cup(s1, Set_sng(2))}
       ; s3 : {VV : Set_Set int | VV = Set_cup(s2, Set_sng(3))} 
@@ -43,7 +43,7 @@ constraint:
   id 5
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } 
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } 
       ; s1 : {VV : Set_Set int | VV = Set_cup(s0, Set_sng(1))}
       ; s2 : {VV : Set_Set int | VV = Set_cup(s1, Set_sng(2))}
       ; s3 : {VV : Set_Set int | VV = Set_cup(s2, Set_sng(3))} 
@@ -54,7 +54,7 @@ constraint:
   id 6
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } 
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } 
       ; s1 : {VV : Set_Set int | VV = Set_cup(s0, Set_sng(1))}
       ; s2 : {VV : Set_Set int | VV = Set_cup(s1, Set_sng(2))}
       ; s3 : {VV : Set_Set int | VV = Set_cup(s2, Set_sng(3))} 
@@ -65,7 +65,7 @@ constraint:
   id 7
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } 
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } 
       ; s1 : {VV : Set_Set int | VV = Set_cup(s0, Set_sng(1))}
       ; s2 : {VV : Set_Set int | VV = Set_cup(s1, Set_sng(2))}
       ; s3 : {VV : Set_Set int | VV = Set_cup(s2, Set_sng(3))} 
@@ -80,7 +80,7 @@ constraint:
 
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } 
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } 
       ; s1 : {VV : Set_Set int | VV = Set_cup(s0, Set_sng(1))}
       ; s2 : {VV : Set_Set int | VV = Set_cup(s1, Set_sng(2))}
       ; s3 : {VV : Set_Set int | VV = Set_cup(s2, Set_sng(3))} 
@@ -95,7 +95,7 @@ constraint:
 
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } 
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } 
       ; s1 : {VV : Set_Set int | VV = Set_cup(s0, Set_sng(1))}
       ; s2 : {VV : Set_Set int | VV = Set_cup(s1, Set_sng(2))}
       ; s3 : {VV : Set_Set int | VV = Set_cup(s2, Set_sng(3))} 
@@ -111,7 +111,7 @@ constraint:
 
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } 
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } 
       ; s1 : {VV : Set_Set int | VV = Set_cup(s0, Set_sng(1))}
       ; s2 : {VV : Set_Set int | VV = Set_cup(s1, Set_sng(2))}
       ; s3 : {VV : Set_Set int | VV = Set_cup(s2, Set_sng(3))} 
@@ -125,7 +125,7 @@ constraint:
   id 11 
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } 
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } 
       ; s1 : {VV : Set_Set int | VV = Set_cup(s0, Set_sng(1))}
       ; s2 : {VV : Set_Set int | VV = Set_cup(s1, Set_sng(2))}
       ; s3 : {VV : Set_Set int | VV = Set_cup(s2, Set_sng(3))} 
@@ -140,7 +140,7 @@ constraint:
 
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } 
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } 
       ; s1 : {VV : Set_Set int | VV = Set_cup(s0, Set_sng(1))}
       ; s2 : {VV : Set_Set int | VV = Set_cup(s1, Set_sng(2))}
       ; s3 : {VV : Set_Set int | VV = Set_cup(s2, Set_sng(3))} 
@@ -154,7 +154,7 @@ constraint:
   id 13 
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } 
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } 
       ; s1 : {VV : Set_Set int | VV = Set_cup(s0, Set_sng(1))}
       ; s2 : {VV : Set_Set int | VV = Set_cup(s1, Set_sng(2))}
       ; s3 : {VV : Set_Set int | VV = Set_cup(s2, Set_sng(3))} 
@@ -168,7 +168,7 @@ constraint:
   id 14 
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } 
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } 
       ; s1 : {VV : Set_Set int | VV = Set_cup(s0, Set_sng(1))}
       ; s2 : {VV : Set_Set int | VV = Set_cup(s1, Set_sng(2))}
       ; s3 : {VV : Set_Set int | VV = Set_cup(s2, Set_sng(3))} 
@@ -183,7 +183,7 @@ constraint:
 
 
 constraint:
-  env [ s0 : {VV : Set_Set int | VV = Set_emp } 
+  env [ s0 : {VV : Set_Set int | VV = (Set_emp() : Set_set int) } 
       ; s1 : {VV : Set_Set int | VV = Set_cup(s0, Set_sng(1))}
       ; s2 : {VV : Set_Set int | VV = Set_cup(s1, Set_sng(2))}
       ; s3 : {VV : Set_Set int | VV = Set_cup(s2, Set_sng(3))} 
