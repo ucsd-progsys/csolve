@@ -114,7 +114,7 @@ let set_sub : appDef =
   }
 
 (* API *)
-let set_theory = ([set_set], [set_emp; set_sng; set_cup; set_cap; set_dif; set_sub])
+let set_theory = ([set_set], [set_emp; set_sng; set_mem; set_cup; set_cap; set_dif; set_sub])
 
 (***************************************************************************)
 (********* Wrappers Around Z3 Constructors For Last-Minute Checking ********)

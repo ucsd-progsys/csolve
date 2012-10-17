@@ -1,0 +1,7 @@
+constraint:
+  env [ s0 : {VV : Set_Set int | [(VV = (Set_emp([]) : Set_Set int))]}]
+  grd true
+  lhs {VV : bool | [? Set_mem([1; s0])]}
+  rhs {VV : bool | [(0 = 1)]}
+  id 1 
+
