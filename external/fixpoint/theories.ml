@@ -27,7 +27,6 @@ open FixMisc.Ops
 
 
 type appDef  = { sy_name  : Sy.t
-               ; sy_arity : int
                ; sy_sort  : So.t
                ; sy_emb   : Z3.context -> Z3.sort list -> Z3.ast list -> Z3.ast
                }
@@ -46,27 +45,76 @@ let sym_sort d  = d.sy_sort
 (******************** Theory of Sets ***************************************)
 (***************************************************************************)
 
-let set_Set : sortDef = 
-  { so_name  = So.tycon "Set_Set" 
+let set_tycon  = So.tycon "Set_Set"
+let t_set a    = So.t_app set_tycon [a]
+
+let set_set : sortDef = 
+  { so_name  = set_tycon 
   ; so_arity = 1 
   ; so_emb   = fun c -> function 
                  [t] -> Z3.mk_set_sort c t
-                 | _ -> assertf "set_Set: type mismatch"
+                 | _ -> assertf "Set_set: type mismatch"
   }  
 
-let set_emp : appDef  = failwith "TBD"
-let set_mem : appDef  = failwith "TBD"
-let set_sng : appDef  = failwith "TBD"
-let set_cup : appDef  = failwith "TBD"
-let set_cap : appDef  = failwith "TBD"
-let set_dif : appDef  = failwith "TBD"
+let set_emp : appDef  = 
+  { sy_name  = Sy.of_string "Set_emp"
+  ; sy_sort  = So.t_func 1 [t_set (So.t_generic 0)]
+  ; sy_emb   = fun c ts es -> match ts, es with
+                 | [t], [] -> Z3.mk_empty_set c t
+                 | _       -> assertf "Set_emp: type mismatch"
+  }
 
-let set_theory        = ( [ set_Set ]
-                        , [ set_emp
-                          ; set_sng
-                          ; set_cup
-                          ; set_cap
-                          ; set_dif ] )
+let set_sng : appDef  = 
+  { sy_name = Sy.of_string "Set_sng"
+  ; sy_sort = So.t_func 1 [So.t_generic 0; t_set (So.t_generic 0)] 
+  ; sy_emb  = fun c ts es -> match ts, es with
+                 | [t], [e] -> Z3.mk_set_add c (Z3.mk_empty_set c t) e
+                 | _        -> assertf "Set_sng: type mismatch"
+  }
+
+
+let set_mem : appDef  = 
+  { sy_name = Sy.of_string "Set_mem"
+  ; sy_sort = So.t_func 1 [So.t_generic 0; t_set (So.t_generic 0); So.t_bool] 
+  ; sy_emb  = fun c ts es -> match ts, es with
+                 | [t], [e;es] -> Z3.mk_set_member c e es 
+                 | _           -> assertf "Set_mem: type mismatch"
+  }
+
+let set_cup : appDef  = 
+  { sy_name = Sy.of_string "Set_cup"
+  ; sy_sort = So.t_func 1 [t_set (So.t_generic 0); t_set (So.t_generic 0); t_set (So.t_generic 0)]
+  ; sy_emb  = fun c ts es -> match ts, es with
+                 | [t], [e1;e2] -> Z3.mk_set_union c [| e1; e2 |] 
+                 | _            -> assertf "Set_cup: type mismatch"
+  }
+
+let set_cap : appDef  = 
+  { sy_name = Sy.of_string "Set_cap"
+  ; sy_sort = So.t_func 1 [t_set (So.t_generic 0); t_set (So.t_generic 0); t_set (So.t_generic 0)] 
+  ; sy_emb  = fun c ts es -> match ts, es with
+                 | [t], [e1;e2] -> Z3.mk_set_intersect c [| e1; e2 |] 
+                 | _            -> assertf "Set_cap: type mismatch"
+  }
+
+let set_dif : appDef  = 
+  { sy_name = Sy.of_string "Set_dif"
+  ; sy_sort = So.t_func 1 [t_set (So.t_generic 0); t_set (So.t_generic 0); t_set (So.t_generic 0)]
+  ; sy_emb  = fun c ts es -> match ts, es with
+                 | [t], [e1;e2] -> Z3.mk_set_difference c e1 e2 
+                 | _            -> assertf "Set_dif: type mismatch"
+  }
+
+let set_sub : appDef =
+  { sy_name = Sy.of_string "Set_sub"
+  ; sy_sort = So.t_func 1 [t_set (So.t_generic 0); t_set (So.t_generic 0); So.t_bool] 
+  ; sy_emb  = fun c ts es -> match ts, es with
+                 | [t], [e1;e2] -> Z3.mk_set_subset c e1 e2 
+                 | _            -> assertf "Set_dif: type mismatch"
+  }
+
+(* API *)
+let set_theory = ([set_set], [set_emp; set_sng; set_cup; set_cap; set_dif; set_sub])
 
 (***************************************************************************)
 (********* Wrappers Around Z3 Constructors For Last-Minute Checking ********)
@@ -77,12 +125,20 @@ let app_sort_arity def = match So.func_of_t def.sy_sort with
   | None         -> assertf "Theories: app with non-function symbol %s" 
                     (Sy.to_string def.sy_name)
 
+let check_app_arities def tArgs eArgs = match So.func_of_t def.sy_sort with
+  | Some (n, ts,_) 
+     -> asserts (n = List.length tArgs)  
+          "Theories: app with mismatched sorts %s" (Sy.to_string def.sy_name);
+        asserts (List.length ts = List.length eArgs) 
+          "Theories: app with mismatched args %s" (Sy.to_string def.sy_name) 
+  | None         
+     -> assertf "Theories: app with non-function symbol %s" 
+          (Sy.to_string def.sy_name)
+
+
 (* API *)
 let mk_thy_app def c ts es = 
-  asserts (List.length ts = app_sort_arity def) 
-    "Theories: app with mismatched sorts %s" (Sy.to_string def.sy_name);
-  asserts (List.length es = def.sy_arity) 
-    "Theories: app with mismatched args %s" (Sy.to_string def.sy_name);
+  check_app_arities def ts es;
   def.sy_emb c ts es
 
 (* API *)
