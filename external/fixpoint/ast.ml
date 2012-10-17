@@ -1201,10 +1201,13 @@ let uf_arity f uf =
       Some i
  
 (* API *)
-let sortcheck_app f uf es = 
-  match uf_arity f uf, sortcheck_app_sub f None uf es with 
-    | (Some n , Some (s, t)) when Sort.check_arity n s -> Some (s, t)
-    | _                                           -> None
+let sortcheck_app f t uf es = 
+  match uf_arity f uf, sortcheck_app_sub f t uf es with 
+    | (Some n , Some (s, t)) -> 
+        if Sort.check_arity n s then Some (s, t) else
+           assertf "Ast.sortcheck_app: type args not fully instantiated %s" 
+             (expr_to_string (eApp (uf, es)))
+    | _ -> None
 
 (*
 let sortcheck_pred f p = 
