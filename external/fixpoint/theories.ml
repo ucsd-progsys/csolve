@@ -20,12 +20,15 @@
  * TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  *)
 
+module So = Ast.Sort
+module Sy = Ast.Symbol
 
-module Misc = FixMisc
+open FixMisc.Ops
 
-type symDef  = { sy_name  : Ast.Symbol.t
+
+type appDef  = { sy_name  : Sy.t
                ; sy_arity : int
-               ; sy_sort  : Ast.Sort.t
+               ; sy_sort  : So.t
                ; sy_emb   : Z3.context -> Z3.sort list -> Z3.ast list -> Z3.ast
                }
 
@@ -34,24 +37,68 @@ type sortDef = { so_name  : Ast.Sort.tycon
                ; so_emb   : Z3.context -> Z3.sort list -> Z3.sort 
                }
 
-type def     = Sym of symDef | Sort of sortDef
-
-type t       = def list
-
+(* API *)
+let sort_name d = d.so_name
+let sym_name d  = d.sy_name
+let sym_sort d  = d.sy_sort
 
 (***************************************************************************)
 (******************** Theory of Sets ***************************************)
 (***************************************************************************)
 
+let set_Set : sortDef = 
+  { so_name  = So.tycon "Set_Set" 
+  ; so_arity = 1 
+  ; so_emb   = fun c -> function 
+                 [t] -> Z3.mk_set_sort c t
+                 | _ -> assertf "set_Set: type mismatch"
+  }  
+
+let set_emp : appDef  = failwith "TBD"
+let set_mem : appDef  = failwith "TBD"
+let set_sng : appDef  = failwith "TBD"
+let set_cup : appDef  = failwith "TBD"
+let set_cap : appDef  = failwith "TBD"
+let set_dif : appDef  = failwith "TBD"
+
+let set_theory        = ( [ set_Set ]
+                        , [ set_emp
+                          ; set_sng
+                          ; set_cup
+                          ; set_cap
+                          ; set_dif ] )
+
 (***************************************************************************)
-(***************************************************************************)
+(********* Wrappers Around Z3 Constructors For Last-Minute Checking ********)
 (***************************************************************************)
 
-let theories () = 
-  failwith "TBD: implement theories!"
+let app_sort_arity def = match So.func_of_t def.sy_sort with
+  | Some (n,_,_) -> n
+  | None         -> assertf "Theories: app with non-function symbol %s" 
+                    (Sy.to_string def.sy_name)
 
+(* API *)
+let mk_thy_app def c ts es = 
+  asserts (List.length ts = app_sort_arity def) 
+    "Theories: app with mismatched sorts %s" (Sy.to_string def.sy_name);
+  asserts (List.length es = def.sy_arity) 
+    "Theories: app with mismatched args %s" (Sy.to_string def.sy_name);
+  def.sy_emb c ts es
+
+(* API *)
+let mk_thy_sort def c ts = 
+  asserts (List.length ts = def.so_arity) 
+    "Theories: app with mismatched sorts %s" (So.tycon_string def.so_name);
+  def.so_emb c ts 
+
+(* API *)
+let theories () = set_theory
+
+(*
 let symbols  () = 
   Misc.map_partial begin function 
     | Sym {sy_name = x; sy_sort = t} -> Some (x, t) 
     | _                              -> None
   end (theories ())
+
+*)

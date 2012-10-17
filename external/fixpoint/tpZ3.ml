@@ -58,7 +58,7 @@ type t = {
   mutable count : int;
   mutable bnd   : int;
   thy_sortm     : (So.tycon, Th.sortDef) H.t;
-  thy_symm      : (Sy.t,     Th.symDef)  H.t;
+  thy_symm      : (Sy.t,     Th.appDef)  H.t;
 }
 
 (*************************************************************************)
@@ -160,11 +160,9 @@ let rec z3Type me t =
 
 and z3TypeThy me t = match So.app_of_t t with
  | Some (c, ts) when H.mem me.thy_sortm c -> 
-     let emb = H.find me.thy_sortm c                      in
-     let _   = asserts (List.length ts = emb.Th.so_arity) 
-                "Mismatched args for tycon %s" 
-                (So.tycon_string c)                       in
-     Some (emb.Th.so_emb me.c <| List.map (z3Type me) ts)
+     let def = H.find me.thy_sortm c   in
+     let zts = List.map (z3Type me) ts in
+     Some (Th.mk_thy_sort def me.c zts)
  | _ -> None 
  
 (***********************************************************************)
@@ -253,12 +251,12 @@ and z3App me env p zes =
   let cf = z3Fun me env p t (List.length zes) in
   Z3.mk_app me.c cf (Array.of_list zes)
 
-and z3AppThy me env emb f es = 
+and z3AppThy me env def f es = 
   match A.sortcheck_app (Misc.flip SM.maybe_find env) f es with 
     | Some (s, t) ->
         let zts = So.sub_args s |> List.map (snd <+> z3Type me) in
         let zes = es            |> List.map (z3Exp me env)      in
-        emb.Th.sy_emb me.c zts zes
+        Th.mk_thy_app def me.c zts zes
     | None ->
         A.eApp (f, es)
         |> E.to_string
@@ -452,14 +450,9 @@ let handle_vv me env vv =
 (********************************* API **********************************)
 (************************************************************************)
 
-let create_theories () = 
-  let sortm = H.create 17 in
-  let symm  = H.create 17 in
-  foreach (Th.theories ()) begin function 
-    | Th.Sym  x -> H.add symm  x.Th.sy_name x
-    | Th.Sort y -> H.add sortm y.Th.so_name y
-  end;
-  (sortm, symm)
+let create_theories () =
+  Th.theories () 
+  |> (Misc.hashtbl_of_list_with Th.sort_name <**> Misc.hashtbl_of_list_with Th.sym_name)
 
 
 (* API *)
