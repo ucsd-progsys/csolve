@@ -194,5 +194,19 @@ constraint:
   grd true
   lhs {VV : bool | [(? Set_mem(1, Set_cap(s3, t2)))]}
   rhs {VV : bool | [(0 = 1)]}
-  id 166
+  id 16
 
+
+constraint:
+  env [ s0 : {VV : Set_Set int | [(VV = (Set_emp([]) : Set_Set int))] } 
+      ; s1 : {VV : Set_Set int | [(VV = Set_cup(s0, Set_sng(1))    )] }
+      ; s2 : {VV : Set_Set int | [(VV = Set_cup(s1, Set_sng(2))    )] }
+      ; s3 : {VV : Set_Set int | [(VV = Set_cup(s2, Set_sng(3))    )] } 
+      ; t1 : {VV : Set_Set int | [(VV = Set_cup(s0, Set_sng(3))    )] } 
+      ; t2 : {VV : Set_Set int | [(VV = Set_cup(t1, Set_sng(2))    )] }
+      ; t3 : {VV : Set_Set int | [(VV = Set_cup(t2, Set_sng(1))    )] }
+      ]
+  grd true
+  lhs {VV : bool | []}
+  rhs {VV : bool | [(? Set_sub(t2, s3))]}
+  id 17
