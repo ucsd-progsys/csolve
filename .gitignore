@@ -1,4 +1,5 @@
 *.o
+*.csolve.save.c
 *.a
 *.cmxa
 *.cm[oxai]
