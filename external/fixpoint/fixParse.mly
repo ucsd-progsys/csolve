@@ -17,7 +17,21 @@ module C  = FixConstraint
   | Tycon tyconargsne                   { So.t_app (So.tycon $1) $2 }
    *)
   (*  | Id                                  { So.t_ptr (So.Loc $1) }
- *)
+
+(*
+pExprs:
+    LPAREN RPAREN                       { []   }
+  | LPAREN expr RPAREN                  { [$2] }
+  | LPAREN exprsCommaNe RPAREN          { $2   }
+  ;
+
+exprsCommaNe:
+    expr                                { [$1] }
+  | expr COMMA exprsCommaNe             { $1 :: $3 }
+  ; 
+  *)
+
+*)
 let parse_error msg =
   Errorline.error (symbol_start ()) msg
 
@@ -215,16 +229,7 @@ argsne:
   | expr COMMA argsne                   { $1::$3 }
   ;
 
-pExprs:
-    LPAREN RPAREN                       { []   }
-  | LPAREN expr RPAREN                  { [$2] }
-  | LPAREN exprsCommaNe RPAREN          { $2   }
-  ;
 
-exprsCommaNe:
-    expr                                { [$1] }
-  | expr COMMA exprsCommaNe             { $1 :: $3 }
-  ;
 
 exprs:
     LB RB                               { [] }
@@ -246,7 +251,6 @@ expr:
   | expr TIMES expr                       { A.eBin ($1, A.Times, $3) }
   | expr DIV expr                         { A.eBin ($1, A.Div, $3) }
   | expr ops expr                         { A.eMBin ($1, $2, $3) }
-  | Id pExprs                             { A.eApp ((Sy.of_string $1), $2) }
   | Id LPAREN exprs RPAREN                { A.eApp ((Sy.of_string $1), $3) }
   | Id Id                                 { A.eApp ((Sy.of_string $1), [A.eVar (Sy.of_string $2)]) }
   | LPAREN pred QM expr COLON expr RPAREN { A.eIte ($2,$4,$6) }
