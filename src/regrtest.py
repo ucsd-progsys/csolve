@@ -74,7 +74,7 @@ class Config (rtest.TestConfig):
 
   def is_test (self, file):
     return (file.endswith(".sh") and os.access(file, os.X_OK)) \
-        or (file.endswith(".c") and not file.endswith(".ssa.c"))
+        or (file.endswith(".c") and not file.endswith(".csolve.save.c") and not file.endswith(".ssa.c"))
 
 #####################################################################################
 

@@ -1,1 +1,1 @@
-rm -rf ./*.log ./*.out ./*.json ./*.html ./*.infspec ./css ./js ./*.shape ./*.fq ./*.scalar* ./*.squals ./*ssa* ./*.autospec ./*.annot ./*.tags ./*.vmap
+rm -rf ./*.save.c ./*.log ./*.out ./*.json ./*.html ./*.infspec ./css ./js ./*.shape ./*.fq ./*.scalar* ./*.squals ./*ssa* ./*.autospec ./*.annot ./*.tags ./*.vmap
