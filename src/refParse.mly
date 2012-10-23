@@ -1,7 +1,7 @@
 %{
 
-  module Misc = FixMisc
-  module A   = Ast
+module Misc = FixMisc
+module A   = Ast
 module So  = Ast.Sort
 module Sy  = A.Symbol
 module SM  = Misc.StringMap
@@ -308,6 +308,7 @@ predsne:
 pred:
     TRUE				{ A.pTrue }
   | FALSE				{ A.pFalse }
+  | QM expr                             { A.pBexp ($2) }
   | AND preds   			{ A.pAnd ($2) }
   | OR  preds 	        		{ A.pOr  ($2) }
   | NOT pred				{ A.pNot ($2) }
