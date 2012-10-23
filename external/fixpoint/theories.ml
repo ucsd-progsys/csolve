@@ -45,6 +45,7 @@ let sym_sort d  = d.sy_sort
 (******************** Theory of Sets ***************************************)
 (***************************************************************************)
 
+(* API *)
 let set_tycon  = So.tycon "Set_Set"
 let t_set a    = So.t_app set_tycon [a]
 
