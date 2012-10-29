@@ -176,8 +176,8 @@ extern size_t strxfrm_l (char *__dest, __const char *__src, size_t __n,
 
 #if defined __USE_SVID || defined __USE_BSD || defined __USE_XOPEN_EXTENDED
 /* Duplicate S, returning an identical malloc'd string.  */
-extern char *strdup (__const char *__s)
-     __THROW __attribute_malloc__ __nonnull ((1));
+extern char NULLTERMSTR *STRINGPTR strdup (__const NULLTERMSTR char * STRINGPTR __s)
+     __THROW __attribute_malloc__ __nonnull ((1)) OKEXTERN;
 #endif
 
 /* Return a malloc'd copy of at most N bytes of STRING.  The

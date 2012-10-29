@@ -123,7 +123,7 @@ extern __sighandler_t bsd_signal (int __sig, __sighandler_t __handler)
    send SIG to all processes in the current process's process group.
    If PID is < -1, send SIG to all processes in process group - PID.  */
 #ifdef __USE_POSIX
-extern int kill (__pid_t __pid, int __sig) __THROW;
+extern int kill (__pid_t __pid, int __sig) __THROW OKEXTERN;
 #endif /* Use POSIX.  */
 
 #if defined __USE_BSD || defined __USE_XOPEN_EXTENDED

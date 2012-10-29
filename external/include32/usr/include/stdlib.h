@@ -481,11 +481,11 @@ __BEGIN_NAMESPACE_STD
 // extern void * malloc (size_t REF(V >= 0) __size) __THROW __attribute_malloc__ __wur;
 
 // CSOLVE
-extern void * LOC(!L) START NONNULL SIZE(__size)
+extern void * LOC(!L) START NONNULL SIZE(__size) REF(? Set_emp([TAGSET([V])]))
      malloc (size_t REF(V >= 0) IGNORE_INDEX __size) __THROW __attribute_malloc__ __wur OKEXTERN;
 
 /* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
-     extern void * LOC(!L) START NONNULL SIZE(__size*__nmemb) 
+extern void * LOC(!L) START NONNULL SIZE(__size*__nmemb) REF(? Set_emp([TAGSET([V])]))
      calloc (size_t __nmemb, size_t __size)
      __THROW __attribute_malloc__ __wur OKEXTERN;
 __END_NAMESPACE_STD
@@ -498,8 +498,9 @@ __BEGIN_NAMESPACE_STD
 /* __attribute_malloc__ is not used, because if realloc returns
    the same pointer that was passed to it, aliasing needs to be allowed
    between objects pointed by the old and new pointers.  */
-extern void *realloc (void *__ptr, size_t __size)
-     __THROW __attribute_warn_unused_result__;
+extern void * LOC(!L) START NONNULL SIZE(__size) REF(TAGSET([V]) = TAGSET([__ptr]))
+realloc (void *__ptr, size_t REF(V >= 0) __size)
+     __THROW __attribute_warn_unused_result__ OKEXTERN;
 /* Free a block allocated by `malloc', `realloc' or `calloc'.  */
 extern void free (void * VALIDPTR __ptr) __THROW OKEXTERN;
 __END_NAMESPACE_STD

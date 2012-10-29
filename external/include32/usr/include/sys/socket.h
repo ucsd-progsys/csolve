@@ -109,7 +109,7 @@ extern int socket (int __domain, int __type, int __protocol) __THROW;
    descriptors for them in FDS[0] and FDS[1].  If PROTOCOL is zero,
    one will be chosen automatically.  Returns 0 on success, -1 for errors.  */
 extern int socketpair (int __domain, int __type, int __protocol,
-		       int __fds[2]) __THROW;
+		       int __fds[2]) __THROW OKEXTERN;
 
 /* Give the socket FD the local address ADDR (which is LEN bytes long).  */
 extern int bind (int __fd, __CONST_SOCKADDR_ARG __addr, socklen_t __len)
