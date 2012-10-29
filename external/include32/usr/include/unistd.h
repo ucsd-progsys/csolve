@@ -600,7 +600,7 @@ extern int nice (int __inc) __THROW __wur;
 
 
 /* Terminate program execution with the low-order 8 bits of STATUS.  */
-extern void _exit (int __status) __attribute__ ((__noreturn__));
+extern void REF(1 = 0) _exit (int __status) __attribute__ ((__noreturn__)) OKEXTERN;
 
 
 /* Get the `_PC_*' symbols for the NAME argument to `pathconf' and `fpathconf';

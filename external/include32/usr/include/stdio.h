@@ -217,7 +217,7 @@ extern int fclose (CSOLVE_IO_FILE_PTR __stream) OKEXTERN;
 
    This function is a possible cancellation point and therefore not
    marked with __THROW.  */
-extern int fflush (FILE *__stream);
+extern int fflush (CSOLVE_IO_FILE_PTR __stream) OKEXTERN;
 __END_NAMESPACE_STD
 
 #ifdef __USE_MISC
@@ -366,9 +366,9 @@ __END_NAMESPACE_STD
 #if defined __USE_BSD || defined __USE_ISOC99 || defined __USE_UNIX98
 __BEGIN_NAMESPACE_C99
 /* Maximum chars of output to write in MAXLEN.  */
-extern int snprintf (char *__restrict __s, size_t __maxlen,
+extern int snprintf (char * STRINGPTR __restrict __s, size_t __maxlen,
 		     __const char *__restrict __format, ...)
-     __THROW __attribute__ ((__format__ (__printf__, 3, 4)));
+     __THROW __attribute__ ((__format__ (__printf__, 3, 4))) OKEXTERN;
 
 extern int vsnprintf (char *__restrict __s, size_t __maxlen,
 		      __const char *__restrict __format, _G_va_list __arg)
@@ -416,7 +416,7 @@ extern int fscanf (FILE *__restrict __stream,
 
    This function is a possible cancellation point and therefore not
    marked with __THROW.  */
-extern int scanf (__const char *__restrict __format, ...) __wur;
+extern int scanf (__const char NULLTERMSTR *NNSTRINGPTR __restrict __format, ...) __wur OKEXTERN;
 /* Read formatted input from S.  */
 extern int sscanf (__const char *__restrict __s,
 		   __const char *__restrict __format, ...) __THROW;
@@ -691,8 +691,11 @@ extern int ungetc (int __c, FILE *__stream);
 
    This function is a possible cancellation points and therefore not
    marked with __THROW.  */
-extern size_t fread (void *__restrict __ptr, size_t __size,
-		     size_t __n, FILE *__restrict __stream) __wur;
+extern size_t REF(V > 0) REF(V <= __n)
+fread (void * SIZE_GE(__n) __restrict __ptr,
+       size_t REF(V = 1) __size,
+       size_t REF(V > 0) __n,
+       CSOLVE_IO_FILE_PTR __restrict __stream) __wur OKEXTERN;
 /* Write chunks of generic data to STREAM.
 
    This function is a possible cancellation points and therefore not
@@ -860,13 +863,15 @@ extern int fileno_unlocked (FILE *__stream) __THROW __wur;
 
    This function is a possible cancellation point and therefore not
    marked with __THROW.  */
-extern FILE *popen (__const char *__command, __const char *__modes) __wur;
+extern CSOLVE_IO_FILE_PTR NNSTART NNVALIDPTR NNROOM_FOR(CSOLVE_IO_FILE_PTR) REF(TAGSET([V]) = TAGSET([__command])) //and modes?
+popen (__const char NULLTERMSTR * __command,
+       __const char NULLTERMSTR * __modes) __wur OKEXTERN;
 
 /* Close a stream opened by popen and return the status of its child.
 
    This function is a possible cancellation point and therefore not
    marked with __THROW.  */
-extern int pclose (FILE *__stream);
+extern int pclose (CSOLVE_IO_FILE_PTR __stream) OKEXTERN;
 #endif
 
 

@@ -31,6 +31,9 @@
 #  define __FD_ZERO_STOS "stosl"
 # endif
 
+#ifdef CIL
+# define __FD_ZERO(fdsp)
+#else
 # define __FD_ZERO(fdsp) \
   do {									      \
     int __d0, __d1;							      \
@@ -41,6 +44,7 @@
 			    "1" (&__FDS_BITS (fdsp)[0])			      \
 			  : "memory");					      \
   } while (0)
+#endif
 
 #else	/* ! GNU CC */
 
@@ -56,7 +60,17 @@
 
 #endif	/* GNU CC */
 
+#ifdef CIL
+
+#define __FD_SET(d, set)
+#define __FD_CLR(d, set)
+#define __FD_ISSET(d, set) nondet()
+
+#else
+
 #define __FD_SET(d, set)    (__FDS_BITS (set)[__FDELT (d)] |= __FDMASK (d))
 #define __FD_CLR(d, set)    (__FDS_BITS (set)[__FDELT (d)] &= ~__FDMASK (d))
 #define __FD_ISSET(d, set) \
   ((__FDS_BITS (set)[__FDELT (d)] & __FDMASK (d)) != 0)
+
+#endif

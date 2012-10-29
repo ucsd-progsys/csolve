@@ -106,10 +106,10 @@ __BEGIN_DECLS
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
-extern int select (int __nfds, fd_set *__restrict __readfds,
-		   fd_set *__restrict __writefds,
-		   fd_set *__restrict __exceptfds,
-		   struct timeval *__restrict __timeout);
+extern int select (int __nfds, fd_set *NNVALIDPTR __restrict __readfds,
+		   fd_set *NNVALIDPTR NNSIZE_GE(__nfds*4) __restrict __writefds,
+		   fd_set *NNVALIDPTR NNSIZE_GE(__nfds*4) __restrict __exceptfds,
+		   struct timeval * NNVALIDPTR NNSTART NNROOM_FOR(struct timeval) __restrict __timeout) OKEXTERN;
 
 #ifdef __USE_XOPEN2K
 /* Same as above only that the TIMEOUT value is given with higher
