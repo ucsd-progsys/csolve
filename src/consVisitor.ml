@@ -48,6 +48,9 @@ module Cs = Constants
 module Sh = Shape
 module An = Annots
 module T  = CilTag
+module Sl = Sloc
+
+module SLM = Sl.SlocMap
 
 open Misc.Ops
 open Cil
@@ -685,9 +688,10 @@ let wcons_of_block_effects me loc sto i =
       FI.make_wfs_effectset env sto (CF.effectset_of_block me i)
   else []
 
-let wcons_of_block me loc (_, sto, _) i des =
+let wcons_of_block me loc (_, sto, _, sle) i des =
   let _    = if mydebug then Printf.printf "wcons_of_block: %d \n" i in 
-(*  let csto = if CF.has_shape me then CF.csto_of_block me i else RS.empty in*)
+  (* build a concrete store somehow --> csto *)
+  let csto = CF.csto_of_block me sto sle i in
   let tag  = CF.tag_of_instr me i 0 loc (T.Raw "wcons_of_block") in
   let phis = CF.phis_of_block me i in
   let env  = CF.inenv_of_block me i in
@@ -854,9 +858,10 @@ let log_of_sci sci sho =
       ()
 
 let cons_of_sci tgr gnv gst sci sho =
-  let _  = log_of_sci sci sho in
-  let is = ST.reachable_blocks_of_sci sci in 
-  CF.create tgr gnv gst sci sho
+  let _   = log_of_sci sci sho in
+  let is  = ST.reachable_blocks_of_sci sci in 
+  let rs  = CF.create tgr gnv gst sci sho  in
+  rs
   |> Misc.flip (List.fold_left process_block) is
   |> Misc.flip (List.fold_left process_block_succs) is
   |> CF.get_cons

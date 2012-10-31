@@ -46,11 +46,15 @@ module CM  = CilMisc
 module YM  = Ast.Symbol.SMap
 module Ct  = Ctypes
 module ES  = Ct.EffectSet
+module IS  = Ctypes.I.Store
+module RS  = Ctypes.RefCTypes.Store
 
 open Misc.Ops
 open Cil
 
-type wld = FI.cilenv * Ct.refstore * CilTag.t option 
+type slocenv = Sloc.t LM.t
+
+type wld = FI.cilenv * Ct.refstore * CilTag.t option * slocenv
 
 type t_sh = {
   astore  : Ct.refstore;
@@ -129,8 +133,9 @@ let scalarenv_of_fdec gnv fdec =
 let env_of_fdec shp gnv fdec =
   let args = FI.ce_find_fn fdec.svar.vname gnv
              |> Ct.args_of_refcfun 
+             (* env_of_fdec no longer strengthens the locations
+              * you have to see the annotations before you can do that *)
              (*|> Misc.map2 (strengthen_refs shp.Sh.theta) fdec.sformals*)
-             |> assert false
              |> List.map (Misc.app_fst FA.name_of_string)
   in
   let locs = fdec.slocals 
@@ -314,9 +319,18 @@ let guard_of_block me i jo =
       (* let _  = Errormsg.log "guard_of_block edge i = %d j = %d p = %s \n" i j (Ast.Predicate.to_string p') in *)
       Ast.pAnd [p; p']
 
-let succs_of_block = fun me i -> me.sci.ST.cfg.Ssa.successors.(i)
-(*let csto_of_block  = fun {shapeo = Some shp} i -> shp.cstoa.(i) |> fst3 *)
-let asgns_of_edge  = fun me i j -> try IIM.find (i, j) me.edgem with Not_found -> []
+let succs_of_block    = fun me i -> me.sci.ST.cfg.Ssa.successors.(i)
+let asgns_of_edge     = fun me i j -> try IIM.find (i, j) me.edgem with Not_found -> []
+
+let subst_of_slocenv  = LM.to_list
+
+let apply_sle sto sle =
+  subst_of_slocenv sle |> fun subs -> IS.subs subs sto
+
+let csto_of_block me sto sle i =
+  match me.shapeo with
+  | Some sh -> apply_sle sto sle |> refstore_of_store
+  | None    -> RS.empty
 
 (*let annots_of_edge me i j =
   match me with 
@@ -470,13 +484,13 @@ let effectset_of_block me i =
 
 let inwld_of_block me = function
   | j when idom_of_block me j < 0 ->
-      (me.gnv, get_astore me, None)
+      (me.gnv, get_astore me, None, LM.empty)
   | j ->
       let loc   = location_of_block me j in
       let msgo  = Some (Printf.sprintf "%s : entry" (get_fname me)) in
       let cause = CilTag.Raw "ConsInfra.inwld_of_block" in
       let tag   = tag_of_instr me j 0 loc cause in 
-      (inenv_of_block me j, get_astore me, Some tag)
+      (inenv_of_block me j, get_astore me, Some tag, LM.empty)
       (*|> ((me.shapeo <> None) <?> extend_wld_with_clocs me j loc tag)*)
 
 let is_reachable_block me i = 
@@ -526,8 +540,15 @@ let create_shapeo tgr gnv env gst sci = function
       = cstoa;*) shp = shp; aeffs = aeffs }
 
 let create tgr gnv gst sci sho = 
-  let formalm = formalm_of_fdec sci.ST.fdec in
-  let env     = env_of_fdec sho gnv sci.ST.fdec in
+  let formalm   = formalm_of_fdec sci.ST.fdec in
+  let env       = env_of_fdec sho gnv sci.ST.fdec in
+  (* this expects to immediately rewrite the environment with the mapped
+   * slocs from hrefanno, but you can't do that until you'd sat down and walked
+   * over the annotations. that's why it was using theta previously.. *)
+  (* the only solution is either another pass that builds theta, or to do
+    * things on the fly: just pull the environment untranslated out, and
+    * when you do cons_of_sci, you say "ok, now i see an annotation, i'm
+    * going to modify my SLM on the dive-in" *)
   let ws, cs, ds, sh_me = create_shapeo tgr gnv env gst sci sho in
   { tgr     = tgr
   ; sci     = sci

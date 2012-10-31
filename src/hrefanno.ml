@@ -413,12 +413,8 @@ let annotate_instr spec env ans sto gst ctm me appm = function
       let _ = flush stderr in
       assert false
 
-  (* this is what i think should be happening: infct should be producing 
-   * only alocs, and this should immediately concretize that aloc
-   * since we know a malloc always produces something concrete. 
-   *
-   * what is happening: New x, y <-- x is cloc?
-   *)
+  (* rather than replacing the New annotations with NewCs, this just adds a NewC
+   * to the existing New annot. we'll have to deal with this in consgen *)
   | Call (rv, Lval ((Var fv), NoOffset), _, _) when fv.vname = "malloc" ->
       let _    = P.eprintf "@[malloc with annots: %a@]" RA.d_annotations ans in
       let subs = ans |>: subst_of_ann |> M.maybe_list in

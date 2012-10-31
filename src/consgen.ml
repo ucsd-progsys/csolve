@@ -183,6 +183,7 @@ let create cil spec decs scim tgr =
   let gnv0   = mk_gnv FI.t_scalar_refctype spec0 decs cnv0 in
   let vim    = BNstats.time "ScalarIndex" (Scalar.scalarinv_of_scim cil spec0 tgr gnv0) scim in
   let shm    = shapem_of_scim cil tgr spec scim vim in
+  let _      = E.log "\nDONE: shapem_of_scim \n" in (* DEBUG *)
   let gnv    = cnv0 |> finalize_funtypes shm
                     |> mk_gnv (Ct.ctype_of_refctype <+> FI.t_fresh) spec decs in 
   let _      = Annots.annot_shape shm scim (SM.mapi (fun f _ -> FI.ce_find_fn f gnv) shm) in

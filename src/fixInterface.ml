@@ -533,8 +533,7 @@ let replace_addr v rct =
   t_subs_names [(vv_addr, FA.name_of_string v.vname)] rct
 
 let refstore_fresh f st =
-     st
-  |> RCt.Store.map t_fresh
+     RCt.Store.map t_fresh st
   >> Annots.annot_sto f 
 
 let conv_refstore_bottom st =
