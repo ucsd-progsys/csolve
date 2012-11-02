@@ -172,26 +172,30 @@ let builtinm    = [(uf_bbegin,  C.make_reft vv_bls so_bls [])
                   ]
                   |> YM.of_list
 
-let quals_of_file fname =
+let f_of_file f fname =
   try
     let _ = Errorline.startFile fname in
       fname
       |> open_in 
       |> Lexing.from_channel
       |> FixParse.defs FixLex.token
-      |> Misc.map_partial (function FixConfig.Qul p -> Some p | _ -> None)
-      |> Qualifier.normalize
+      |> f
   with Sys_error s ->
     Errormsg.warn "Error reading qualifiers: %s@!@!Continuing without qualifiers...@!@!" s; []
 
-(* API *)
-let quals_of_file fname =
+let f_of_file f fname =
   let cppname = fname ^ ".cpp" in
   let cmd     = Printf.sprintf "cpp -imacros %s %s -P -o %s" (Constants.get_csolve_h ()) cppname fname in
   let _       = if Sys.file_exists cppname then Sys.command cmd |> ignore in
-  quals_of_file fname
+  f_of_file f fname
 
+(* API *)
+let quals_of_file fname =
+  f_of_file (fun l -> Misc.map_partial (function FixConfig.Qul p -> Some p | _ -> None) l
+                   |> Qualifier.normalize) fname
 
+let consts_of_file fname =
+  f_of_file (fun l -> Misc.map_partial (function FixConfig.Con (i,s) -> Some (i,s) | _ -> None) l) fname
 
 (* API *)
 let maybe_deref e = match A.Expression.unwrap e with
