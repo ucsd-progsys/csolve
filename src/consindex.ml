@@ -165,6 +165,7 @@ let cones dd ctx cs' = match !Co.cex with
 
 let ac_solve dd me fn (ws, cs, ds) qs so kf =
   let env       = YM.map FixConstraint.sort_of_reft FA.builtinm in
+  let env       = FA.consts_of_file (fn^".hquals") |> YM.of_list |> YM.extend env in
   let assm      = match so with Some s0 -> s0 | _ -> C.empty_solution in
   let kuts      = Errormsg.warn "TODO: kuts"; [] in
   let cfg       = FixConfig.create_raw FA.sorts env FA.axioms 4 ds cs ws qs kuts assm in
