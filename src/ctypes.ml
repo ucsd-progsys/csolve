@@ -1224,8 +1224,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
                                  
       and unify_data_locations sto sub tsub s1 s2 =
         let ld1, ld2 =Misc.map_pair (find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
-        let sto      = remove sto s1 in
-        let sto      = ld2 |> add sto s2 |> subs sub in
+        let sto      = remove sto s1 in                    
+        let sto      = ld2 |> add sto s2 |> subs sub in    
         LDesc.fold (fun (sto, sub, tsub) i f -> 
           add_field sto sub tsub s2 i f) (sto, sub, tsub) ld1
 
@@ -1519,7 +1519,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       (* Only sub the locations that are in the store substitution *)
       let lsubs = SVM.fold (fun _ (ss,_) s -> SS.union ss s) subs SS.empty 
                |> SS.elements
-	       |> (fun ss -> List.filter (snd <+> Misc.flip List.mem ss) lsubs)
+               |> Store.restrict sto |> Store.domain
+               |> (fun ss -> List.filter (snd <+> Misc.flip List.mem ss) lsubs)
       in
       let cf = capturing_subs cf lsubs in
       let args = CType.subs_store_var subs lsubs sto
@@ -1599,8 +1600,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
         
     let rec arg_subs tsub sub sto (t,t') = 
       match Misc.map_pair (CType.subs sub) (t,t') with
-      | Ref (l, _), Ref (l', _) when l <> l' ->
-        Store.Unify.unify_ctype_locs sto sub tsub t t'
+      | Ref (l, _), Ref (l', _)  when l <> l' ->
+        let (store, subst, tsubs) = Store.Unify.unify_ctype_locs sto sub tsub t' t in
+        (store, subst, tsubs)
       | FRef (f, _), FRef (g, _)             -> 
         let fargs, gargs = Misc.map_pair (List.map snd) (f.args, g.args) in
         let sto          = Store.upd sto (Store.subs sub g.sto_out) in
@@ -1637,7 +1639,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 	let cf   = {cf with quant_svars = rest} in
         let (tsub,sub,sto) = sto_of_args srcinfo globals cf args sto S.Subst.empty T.TVarInst.empty in
 	let ssub = Store.domain sto
-	        |> List.filter (not <.> Misc.flip List.mem non_poly_locs)
+                |>: S.Subst.apply sub
+                |> Misc.sort_and_compact
+	        |> List.filter (not <.> Misc.flip List.mem (non_poly_locs |>: S.Subst.apply sub))
                 |> List.fold_left (Misc.flip SS.add) SS.empty
 		|> fun sset -> StS.extend_sset v sset StS.empty in
 	let cf = subs_store_var ssub sub sto cf in
