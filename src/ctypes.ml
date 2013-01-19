@@ -1224,8 +1224,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
                                  
       and unify_data_locations sto sub tsub s1 s2 =
         let ld1, ld2 =Misc.map_pair (find_or_empty sto <+> LDesc.subs sub) (s1, s2) in
-        let sto      = remove sto s1 in
-        let sto      = ld2 |> add sto s2 |> subs sub in
+        let sto      = remove sto s1 in                    
+        let sto      = ld2 |> add sto s2 |> subs sub in    
         LDesc.fold (fun (sto, sub, tsub) i f -> 
           add_field sto sub tsub s2 i f) (sto, sub, tsub) ld1
 
@@ -1601,9 +1601,8 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
     let rec arg_subs tsub sub sto (t,t') = 
       match Misc.map_pair (CType.subs sub) (t,t') with
       | Ref (l, _), Ref (l', _)  when l <> l' ->
-        let _ = Pretty.printf "l: %a l': %a@!" Sloc.d_sloc l Sloc.d_sloc l' in
-        let _ = Pretty.printf "t: %a t': %a@!" CType.d_ctype t CType.d_ctype t' in
-        Store.Unify.unify_ctype_locs sto sub tsub t' t
+        let (store, subst, tsubs) = Store.Unify.unify_ctype_locs sto sub tsub t' t in
+        (store, subst, tsubs)
       | FRef (f, _), FRef (g, _)             -> 
         let fargs, gargs = Misc.map_pair (List.map snd) (f.args, g.args) in
         let sto          = Store.upd sto (Store.subs sub g.sto_out) in

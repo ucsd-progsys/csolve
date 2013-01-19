@@ -249,7 +249,7 @@ let fid_of_FileMap fm f =
  
 let srcLoc_of_location fm l =
  { line = l.Cil.line
- ; file = fid_of_FileMap fm l.Cil.file }
+ ; file = if l.Cil.file <> "" then fid_of_FileMap fm l.Cil.file else -1 }
 
 (* TODO: rename locals to drop SSA/fun-name *)
 let d_cilexp_tidy = Cil.d_exp

@@ -114,6 +114,7 @@ rule token = parse
   | "func"              { FUNC }
   | "sort"              { SRT }
   | "axiom"             { AXM }
+  | "forall"            { FORALL }
   | "constant"          { CON }
   | "constraint"        { CST }
   | "wf"                { WF }

@@ -18,6 +18,8 @@
 #define PEQBLOCK(x)    && [(BLOCK_BEGIN([V]) = BLOCK_BEGIN([x])); (BLOCK_END([V]) = BLOCK_END([x]))]
 #define PINTO(x,lo,hi) && [PNONNULL; (PEQBLOCK(x));(POFFSET_GE(lo));(PSIZE_GE((hi + 1)))]
 #define PINDEX(x,sz)   && [(BLOCK_BEGIN([x]) <= (x + (sz * V))); ((x + sz + (sz * V)) <= BLOCK_END([x]))]
+#define PMEMPRED(_P)  (&&[BLOCK_BEGIN([VVADDR]) <= VVADDR; VVADDR < BLOCK_END([VVADDR])]) => _P([VVADDR]) = _P([V])
+#define PIMMUTABLE(_P) V = DATA_AT([VVADDR-BLOCK_BEGIN([VVADDR]);_P([BLOCK_BEGIN([VVADDR])])])
 
 #ifdef CIL
 # define CSOLVE_ATTR(a) __attribute__ ((a))
@@ -38,7 +40,9 @@
 #define USE_INDEX          CSOLVE_ATTR (csolve_use_index)
 #define ANYREF             CSOLVE_ATTR (csolve_any_ref)
 #define ANY                CSOLVE_ATTR (csolve_any_type)
+#ifdef CIL
 #define NULL               CSOLVE_ATTR (csolve_null_or_ok)
+#endif
 #define VAR(a)             CSOLVE_ATTR (csolve_type_var (#a))
 
 #define FINAL              CSOLVE_ATTR (csolve_final)
@@ -85,6 +89,8 @@
 #define SOMEPTR           REF(0 = 0)
 
 #define NULLTERMSTR       REF((VVADDR = (BLOCK_END([VVADDR]) - 1)) => (V = 0))
+#define MEMPRED(_P)       REF(PMEMPRED(_P))
+#define IMMUTABLE(_P)     REF(PIMMUTABLE(_P))
 
 typedef char NULLTERMSTR * LOC(L) STRINGPTR csolve_string;
 typedef char const NULLTERMSTR FINAL * STRINGPTR  csolve_const_string;
@@ -104,7 +110,7 @@ typedef char const NULLTERMSTR FINAL * STRINGPTR  csolve_const_string;
 
 // Built-in functions
 
-extern void csolve_fold_all () OKEXTERN;
+extern void csolve_fold_all (void) OKEXTERN;
 
 
 extern void validptr (void * VALIDPTR IGNORE_INDEX) OKEXTERN;
@@ -119,11 +125,11 @@ extern void * LOC(L) REF(V = BLOCK_END([p])) csolve_block_end (void * LOC(L) IGN
 
 extern int REF(b = 1) csolve_assume (int b) OKEXTERN;
 
-extern int nondet () OKEXTERN;
+extern int nondet (void) OKEXTERN;
 
-extern int REF(V >= 1) USE_INDEX nondetpos () OKEXTERN;
+extern int REF(V >= 1) USE_INDEX nondetpos (void) OKEXTERN;
 
-extern int REF(V >= 0) USE_INDEX nondetnn () OKEXTERN;
+extern int REF(V >= 0) USE_INDEX nondetnn (void) OKEXTERN;
 
 extern int REF(V >= l) REF(V < u) REF(V >= 0) USE_INDEX nondetrange (int l, int REF(l < V) u) OKEXTERN;
 

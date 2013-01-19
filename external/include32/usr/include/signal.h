@@ -98,7 +98,7 @@ extern __sighandler_t sysv_signal (int __sig, __sighandler_t __handler)
    By default `signal' has the BSD semantic.  */
 __BEGIN_NAMESPACE_STD
 #ifdef __USE_BSD
-extern __sighandler_t signal (int __sig, __sighandler_t __handler)
+extern __sighandler_t signal (int __sig, __sighandler_t __handler) OKEXTERN
      __THROW;
 #else
 /* Make sure the used `signal' implementation is the SVID version. */

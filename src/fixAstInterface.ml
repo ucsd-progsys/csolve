@@ -197,6 +197,10 @@ let quals_of_file fname =
 let consts_of_file fname =
   f_of_file (fun l -> Misc.map_partial (function FixConfig.Con (i,s) -> Some (i,s) | _ -> None) l) fname
 
+let axioms_of_file fname =
+  f_of_file (fun l ->
+    Misc.map_partial (function FixConfig.Axm p -> Some p | _ -> None) l) fname
+    
 (* API *)
 let maybe_deref e = match A.Expression.unwrap e with
   | A.App (f, [e']) when f = uf_deref -> Some e'

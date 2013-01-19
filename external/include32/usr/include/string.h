@@ -125,7 +125,7 @@ extern void *memrchr (__const void *__s, int __c, size_t __n)
 
 __BEGIN_NAMESPACE_STD
 /* Copy SRC to DEST.  */
-extern char *strcpy (char *__restrict __dest, __const char *__restrict __src)
+extern char *strcpy (char NULLTERMSTR *__restrict __dest, __const char NULLTERMSTR *__restrict __src)
      __THROW __nonnull ((1, 2));
 /* Copy no more than N characters of SRC to DEST.  */
 extern char *strncpy (char *__restrict __dest,
@@ -136,13 +136,16 @@ extern char *strncpy (char *__restrict __dest,
 extern char *strcat (char *__restrict __dest, __const char *__restrict __src)
      __THROW __nonnull ((1, 2));
 /* Append no more than N characters from SRC onto DEST.  */
-extern char *strncat (char *__restrict __dest, __const char *__restrict __src,
-		      size_t __n) __THROW __nonnull ((1, 2));
+extern char NULLTERMSTR MEMPRED(DOMAIN) * LOC(S) SIZE_GE(__n) STRINGPTR START
+REF(|| [DOMAIN([V]) = DOMAIN([__dest]); DOMAIN([V]) = DOMAIN([__src])])
+strncat (char NULLTERMSTR MEMPRED(DOMAIN) * LOC(S) SIZE_GE(__n) START STRINGPTR __restrict __dest,
+         __const char MEMPRED(DOMAIN) NULLTERMSTR FINAL * LOC(S2) STRINGPTR __restrict __src,
+         size_t __n) __THROW __nonnull ((1, 2)) OKEXTERN;
 
 /* Compare S1 and S2.  */
-extern int
-  strcmp (__const char NULLTERMSTR FINAL * ARRAY VALIDPTR __s1,
-          __const char NULLTERMSTR FINAL * ARRAY VALIDPTR __s2)
+extern int REF(V = 0 => THE_STRING([__s1]) = THE_STRING([__s2]))
+strcmp (__const char NULLTERMSTR FINAL * ARRAY VALIDPTR __s1,
+        __const char NULLTERMSTR FINAL * ARRAY VALIDPTR __s2)
      __THROW __attribute_pure__ __nonnull ((1, 2)) OKEXTERN;
 /* Compare N characters of S1 and S2.  */
 extern int
@@ -176,7 +179,7 @@ extern size_t strxfrm_l (char *__dest, __const char *__src, size_t __n,
 
 #if defined __USE_SVID || defined __USE_BSD || defined __USE_XOPEN_EXTENDED
 /* Duplicate S, returning an identical malloc'd string.  */
-extern char NULLTERMSTR *STRINGPTR strdup (__const NULLTERMSTR char * STRINGPTR __s)
+extern char NULLTERMSTR MEMPRED(DOMAIN) * START STRINGPTR REF(DOMAIN([V]) = DOMAIN([__s])) REF(TAGSET([V]) = TAGSET([__s])) REF(THE_STRING([V]) = THE_STRING([__s])) strdup (__const char MEMPRED(DOMAIN) NULLTERMSTR FINAL * STRINGPTR __s)
      __THROW __attribute_malloc__ __nonnull ((1)) OKEXTERN;
 #endif
 
