@@ -38,6 +38,14 @@ type result = { soln   : FixConstraint.soln
               }
 
 type cilenv
+type slocenv
+
+type wld = cilenv * Ctypes.refstore * CilTag.t option * slocenv
+
+val sle_empty           : slocenv
+val wld_empty           : wld
+val apply_sle           : Ctypes.refstore -> slocenv -> Ctypes.refstore
+val subst_of_sle        : slocenv         -> Sloc.Subst.t
 
 val pred_of_refctype    : FixConstraint.soln -> Cil.varinfo -> Ctypes.refctype -> Ast.pred
 val sort_of_prectype    : 'a Ctypes.prectype -> Ast.Sort.t
@@ -55,8 +63,7 @@ val d_cilenv            : unit -> cilenv -> Pretty.doc
 val extend_world        : Ctypes.refstore -> Sloc.t -> Sloc.t -> bool ->
                           (Ctypes.refldesc -> Ctypes.refldesc) ->
                           Cil.location -> CilTag.t ->
-                          (cilenv * Ctypes.refstore * 'a) -> 
-                          (cilenv * Ctypes.refstore * 'a) * FixConstraint.t list
+                          wld -> wld * FixConstraint.t list 
 
 val strengthen_type_with_deref :
   Ast.expr ->

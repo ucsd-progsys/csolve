@@ -52,10 +52,6 @@ module RS  = Ctypes.RefCTypes.Store
 open Misc.Ops
 open Cil
 
-type slocenv = Sloc.t LM.t
-
-type wld = FI.cilenv * Ct.refstore * CilTag.t option * slocenv
-
 type t_sh = {
   astore  : Ct.refstore;
   aeffs   : ES.t;
@@ -69,7 +65,7 @@ type t    = {
   ws      : C.wf list;                                   (* wf constrs *)
   cs      : C.t list;                                    (* sub constrs *)
   ds      : C.dep list;
-  wldm    : wld IM.t;
+  wldm    : FI.wld IM.t;
   gnv     : FI.cilenv;                                   (* ctype environment *)
   global_env : FI.cilenv;
   formalm : unit SM.t;
@@ -222,6 +218,11 @@ let partition_diff_bindings cfrom cto =
       end ctabto (diff, same)
   end cto ([], [])
 
+let csto_of_block me rsto sle i =
+  match me.shapeo with
+  | Some sh -> FI.apply_sle rsto sle
+  | None    -> RS.empty
+
 (*let cstoa_of_annots fname gdoms conca astore =
   let emp = Ct.RefCTypes.Store.empty in
   Array.mapi begin fun i (conc,conc') ->
@@ -322,15 +323,6 @@ let guard_of_block me i jo =
 let succs_of_block    = fun me i -> me.sci.ST.cfg.Ssa.successors.(i)
 let asgns_of_edge     = fun me i j -> try IIM.find (i, j) me.edgem with Not_found -> []
 
-let subst_of_slocenv  = LM.to_list
-
-let apply_sle sto sle =
-  subst_of_slocenv sle |> fun subs -> IS.subs subs sto
-
-let csto_of_block me sto sle i =
-  match me.shapeo with
-  | Some sh -> apply_sle sto sle |> refstore_of_store
-  | None    -> RS.empty
 
 (*let annots_of_edge me i j =
   match me with 
@@ -429,7 +421,7 @@ let inenv_of_block me i =
   if idom_of_block me i < 0 then
     me.gnv
   else begin
-    let env0  = idom_of_block me i |> outwld_of_block me |> fst3 in
+    let env0 = idom_of_block me i |> outwld_of_block me |> fst4 in
     i |> phis_of_block me 
       |> List.map (FA.name_of_varinfo <*> bind_of_phi me) 
       |> FI.ce_adds env0 
@@ -484,13 +476,13 @@ let effectset_of_block me i =
 
 let inwld_of_block me = function
   | j when idom_of_block me j < 0 ->
-      (me.gnv, get_astore me, None, LM.empty)
+      (me.gnv, get_astore me, None, FI.sle_empty)
   | j ->
       let loc   = location_of_block me j in
       let msgo  = Some (Printf.sprintf "%s : entry" (get_fname me)) in
       let cause = CilTag.Raw "ConsInfra.inwld_of_block" in
       let tag   = tag_of_instr me j 0 loc cause in 
-      (inenv_of_block me j, get_astore me, Some tag, LM.empty)
+      (inenv_of_block me j, get_astore me, Some tag, FI.sle_empty)
       (*|> ((me.shapeo <> None) <?> extend_wld_with_clocs me j loc tag)*)
 
 let is_reachable_block me i = 

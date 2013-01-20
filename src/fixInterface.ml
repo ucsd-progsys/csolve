@@ -52,6 +52,10 @@ module Ix = Index
 module RCt = Ctypes.RefCTypes
 module FA  = FixAstInterface
 module Sc  = ScalarCtypes
+module LM  = Sloc.SlocMap
+
+module IS  = Ctypes.I.Store
+module RS  = Ctypes.RefCTypes.Store
 
 module ES  = Ctypes.EffectSet
 module ED  = EffectDecls
@@ -73,6 +77,10 @@ type cilenv = { fenv  : Ct.refcfun SM.t  (* function reftype environment  *)
               ; live  : FA.name YM.t     (* "live" name for each variable *) 
               ; theta : Su.t             (* "ground substitution" for each variable *) 
               }
+
+type slocenv = Sloc.t LM.t
+
+type wld = cilenv * Ctypes.refstore * CilTag.t option * slocenv
 
 (******************************************************************************)
 (***************************** Tags and Locations *****************************)
@@ -225,6 +233,20 @@ let print_ce so ppf (_, vnv) =
     F.fprintf ppf "@[%a@]@\n" (print_binding so) (n, cr) 
   end vnv
 *)
+
+(******************************************************************************)
+(******************** Slocenvs and worlds *************************************)
+(******************************************************************************)
+
+let sle_empty = LM.empty
+
+let subst_of_sle  = LM.to_list
+
+let apply_sle rsto sle =
+  subst_of_sle sle |> fun subs -> RS.subs subs rsto
+
+let wld_empty = (ce_empty, RS.empty, None, sle_empty)
+
 
 (****************************************************************)
 (************************** Refinements *************************)
@@ -1220,7 +1242,7 @@ let new_block_reftype = t_zero_refctype (* t_true_refctype *)
 
 
 (* API: TBD: UGLY *)
-let extend_world ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
+let extend_world ssto sloc cloc newloc strengthen loc tag (env, sto, tago, sle) =
   let ld    = sloc |> Ct.refstore_get ssto |> strengthen in
   let binds = binds_of_refldesc sloc ld 
               |> (Misc.choose newloc (List.map (Misc.app_snd new_block_reftype)) id) in 
@@ -1256,7 +1278,7 @@ let extend_world ssto sloc cloc newloc strengthen loc tag (env, sto, tago) =
                   | _ -> cs
                 end [] ld in
   let sto'  = Ct.refstore_set sto cloc ld' in
-  (env', sto', tago), cs
+  (env',sto',tago,sle), cs
 
 let strengthen_type_with_deref ptrexp off ty =
   strengthen_refctype (fun ct -> ra_deref ct ptrexp off) ty

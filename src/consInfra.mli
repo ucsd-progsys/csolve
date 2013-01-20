@@ -25,17 +25,12 @@
 
 type t
 
-type slocenv
-  
-type wld = FixInterface.cilenv * Ctypes.refstore * CilTag.t option * slocenv
-    
 val globalenv_of_t : t -> FixInterface.cilenv
 
-
 val inenv_of_block      : t -> int -> FixInterface.cilenv
-val inwld_of_block      : t -> int -> wld
-val outwld_of_block     : t -> int -> wld
-val add_wld             : int -> wld -> t -> t
+val inwld_of_block      : t -> int -> FixInterface.wld
+val outwld_of_block     : t -> int -> FixInterface.wld
+val add_wld             : int -> FixInterface.wld -> t -> t
 
 val block_has_fresh_effects : t -> int -> bool
 val idom_parblock_of_block  : t -> int -> int
@@ -47,7 +42,7 @@ val stmt_of_block       : t -> int -> Cil.stmt
 val tag_of_instr        : t -> int -> int -> Cil.location -> CilTag.cause -> CilTag.t
 val phis_of_block       : t -> int -> Cil.varinfo list
 val guard_of_block      : t -> int -> int option -> Ast.pred
-val csto_of_block       : t -> Ctypes.store -> slocenv -> int -> Ctypes.refstore
+val csto_of_block       : t -> Ctypes.refstore -> FixInterface.slocenv -> int -> Ctypes.refstore
 val succs_of_block      : t -> int -> int list
 val asgns_of_edge       : t -> int -> int -> (Cil.varinfo * Cil.varinfo) list
 (*val annots_of_edge      : t -> int -> int -> Refanno.annotation list*)
