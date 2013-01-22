@@ -62,9 +62,10 @@ type cstr
     }
 
 type smtlib 
-  = { vars  : vdef list
-    ; kvars : kdef list
-    ; cstrs : cstr list 
+  = { vars   : vdef list
+    ; kvars  : kdef list
+    ; cstrs  : cstr list 
+    ; consts : vdef list
   }
 
 type kmap 
@@ -157,10 +158,43 @@ let rec print_sort ppf t = match So.func_of_t t with
   | _ -> 
     Format.fprintf ppf "Int"
 
+(*
+let print_ty_kind ppf t = match So.func_of_t t with
+  | Some (_, ts, t) when So.is_bool t -> Format.fprintf ppf "pred"
+  | _                                 -> Format.fprintf ppf "fun"
+*)
+
+let print_vdef ppf (x, t) = match So.func_of_t t with
+  | Some (_, ts, t') when So.is_bool t' -> 
+      Format.fprintf ppf ":extrapreds ((%a %a))" 
+        Sy.print x 
+        (Misc.pprint_many false " " print_sort) ts
+  | _ ->
+      Format.fprintf ppf ":extrafuns ((%a %a))" 
+        Sy.print x 
+        print_sort t
+
+  (*
 let print_vdef ppf (x, t) = 
-  Format.fprintf ppf ":extrafuns ((%a %a))"
+  Format.fprintf ppf ":extra%as ((%a %a))"
+    print_ty_kind t
     Sy.print x
     print_sort t
+*)
+
+let print_const ppf c = 
+  Format.fprintf ppf "; constant \n%a\n" print_vdef c
+
+let groupConsts cs = 
+  cs |> Misc.kgroupby snd 
+     |> Misc.map (Misc.app_snd (List.map fst))
+     |> List.filter (snd <+> List.length <+> (>) 0)
+
+let print_distinct ppf (t, cs) =
+  Format.fprintf ppf 
+    "; distinct constants of sort: %a\n(distinct %a)\n"   
+     print_sort t
+     (Misc.pprint_many false " " Sy.print) cs
 
 let print_kdef ppf (kf, xts) = 
   Format.fprintf ppf ":extrapreds ((%a %a))"
@@ -177,10 +211,12 @@ let print_cstr ppf c =
 
 let print ppf smt = 
   Format.fprintf ppf 
-    "(benchmark unknown\n:status unsat\n:logic AUFLIA\n%a\n%a\n%a\n)"
-    (Misc.pprint_many true "\n" print_vdef) smt.vars
-    (Misc.pprint_many true "\n" print_kdef) smt.kvars
-    (Misc.pprint_many true "\n" print_cstr) smt.cstrs
+    "(benchmark unknown\n:status unsat\n:logic AUFLIA\n%a\n%a\n%a\n%a\n%a\n)"
+    (Misc.pprint_many true "\n" print_vdef)     smt.vars
+    (Misc.pprint_many true "\n" print_const)    smt.consts
+    (Misc.pprint_many true "\n" print_kdef)     smt.kvars
+    (Misc.pprint_many true "\n" print_distinct) (groupConsts smt.consts)
+    (Misc.pprint_many true "\n" print_cstr)     smt.cstrs
 
 (*************************************************************************)
 (************* Helpers for extracting var-sort bindings ******************) 
@@ -192,15 +228,24 @@ let sort_compat x t t' =
                Printf.printf "WARNING: k-sort incompatible for %s" 
                (Sy.to_string x))
 
+(* HACKY sort_compat because in the end everything is an Int *)
+let sort_compat x t1 t2 = 
+  not (So.is_bool t1) 
+  && not (So.is_bool t2) 
+  && (not (So.is_func t1) || (t1 = t2))
+  && (not (So.is_func t2) || (t1 = t2))
+
 let vdefs_of_env env r = 
   env |> C.bindings_of_env
       |> (++) [(C.vv_of_reft r, r)]
       |> List.map (Misc.app_snd C.sort_of_reft)
+      (* |> List.filter (not <.> So.is_func <.> snd)  *)
       |> Misc.fsort fst
 
 (*************************************************************************)
 (************* Build VMap : gather all vars/sorts for regular vars *******) 
 (*************************************************************************)
+
 
 let update_vmap vm (x, t) =
   Misc.maybe_iter begin fun t' ->
@@ -208,12 +253,19 @@ let update_vmap vm (x, t) =
   end (SM.maybe_find x vm);
   SM.add x t vm
 
-let add_var_to_vmap vm c =
+let update_vmap_int vm (x, t) =
+  SM.add x So.t_int vm
+
+let add_c_var_to_vmap vm c =
   let vvl = C.vv_of_reft (C.lhs_of_t c) in
   let vvr = C.vv_of_reft (C.rhs_of_t c) in
   let _   = asserts (vvl = vvr) "Different VVs in Constr: %d" (C.id_of_t c) in
   vdefs_of_env (C.env_of_t c) (C.lhs_of_t c)
-  |> List.fold_left update_vmap vm 
+  |> List.fold_left update_vmap_int vm 
+ 
+let add_wf_var_to_vmap vm w =
+  vdefs_of_env (C.env_of_wf w) (C.reft_of_wf w)
+  |> List.fold_left update_vmap_int vm 
   
 (*************************************************************************)
 (************ Build KMap: gather scopes for each kvar from wfs** *********)
@@ -260,16 +312,17 @@ let mkFresh cid x =
 
 let fresh_vars env cid es = 
   let t   = Hashtbl.create 17 in
+  let msg = "fresh_vars: cid = "^(string_of_int cid) in   
   let es' = List.map begin fun e -> match e with
             | (A.Var x, _) ->
                 if Hashtbl.mem t x then
                   x |> mkFresh cid >> Hashtbl.add t x |> A.eVar
                 else let _ = Hashtbl.add t x x in e 
-            | _ -> failwith "ERROR fresh_vars"
+            | _ -> failwith ("ERROR: " ^ msg)
             end es in
   let l' = Misc.hashtbl_keys t 
            |> Misc.flap begin fun x -> 
-                let so = SM.safeFind x env "toSmtLib.fresh_vars" in
+                let so = SM.safeFind x env msg in
                 foreach (Hashtbl.find_all t x) begin fun x' ->
                   (x', so), A.pEqual ((A.eVar x), (A.eVar x'))
                 end
@@ -304,23 +357,33 @@ let tx_constraint s c =
                                   | _   -> failwith "tx_constraint")
                           ; id = cid}
           end
-      |>: begin function
-            | { rhs = Some (A.Bexp (A.App (f, es),_), _) } as c' ->
+       
+       |>: begin function
+         (* Ken needed this tx but it messes up with typeclasses... maybe not
+          * needed any more?  
+            
+         | { rhs = Some (A.Bexp (A.App (f, es),_), _) } as c' ->
                 let (xts, eqp), es' = fresh_vars (C.senv_of_t c) cid es in
                 let r'              = A.pBexp (A.eApp (f, es')) in 
                 (xts, {c' with lhs = A.pAnd [eqp; c'.lhs]; rhs = Some r' })
-            |  c' -> ([], c')
+          *)
+          |  c' -> ([], c')
           end
 
-let tx_defs defs = 
-  let km  = defs |> make_kmap in
-  let s   = soln_of_kmap km   in 
-  let cs  = defs |> Misc.map_partial (function Cg.Cst x -> Some x | _ -> None) 
-                 (* |> Misc.map canonize_vv *) in
+let tx_defs cfg =
+  let defs = List.map (fun c -> Cg.Cst c) cfg.Cg.cs ++ 
+             List.map (fun c -> Cg.Wfc c) cfg.Cg.ws     in
+  let km   = defs |> make_kmap                          in
+  let s    = soln_of_kmap km                            in 
+  let cs   = cfg.Cg.cs                                  in
+  let ws   = cfg.Cg.ws                                  in
   let xts,cs' = List.split <| Misc.flap (tx_constraint s) cs in
-  { vars  = Misc.flatten xts ++ (SM.to_list <| List.fold_left add_var_to_vmap SM.empty cs) 
-  ; kvars = SM.range km
-  ; cstrs = cs'
+  { vars   =  Misc.flatten xts 
+           ++ (SM.to_list <| List.fold_left add_c_var_to_vmap SM.empty cs) 
+           ++ (SM.to_list <| List.fold_left add_wf_var_to_vmap SM.empty ws)
+  ; kvars  = SM.range km
+  ; cstrs  = cs'
+  ; consts = SM.to_list cfg.Cg.uops 
   }
 
 
@@ -328,6 +391,16 @@ let tx_defs defs =
 (************* API *******************************************************)
 (*************************************************************************)
 
-let render ppf defs =
-  defs |> tx_defs 
-       |> F.fprintf ppf "%a" print
+  (*
+let render ppf cfg =
+  cfg |> tx_defs 
+      |> F.fprintf ppf "%a" print
+*)
+let dump_smtlib cfg =
+  let _  = print_now ("BEGIN: Dump SMTLIB \n") in
+  let me = tx_defs cfg                         in
+  let _  = Misc.with_out_formatter !Constants.out_file (fun ppf -> F.fprintf ppf "%a" print me) in
+  let _  = print_now ("DONE: Dump SMTLIB to " ^ !Constants.out_file ^"\n") in
+  exit 1 
+
+
