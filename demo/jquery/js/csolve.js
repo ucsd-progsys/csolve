@@ -254,9 +254,9 @@ $(document).ready(function () {
  
   //Set tooltips for each qualname (shows: expanded qual-def) 
   $("span[class='qname']").tooltip({
-       position : 'right'
-    , offset   : [-190, -95]     
-    , delay    : 100
+      position : 'top' 
+    , offset   : [0, 0] // -190, -95] 
+    , delay    : 50
     , effect   : 'slide'
   });
  

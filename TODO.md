@@ -61,7 +61,6 @@ Error Messages
 ==============
 
 * chgrp   -- undo, get decent error after removing OPTARG_LOC annot.
-
    
 * Go through the "Raw String" and replace with meaningful errors
   corresponding to the function calls, derefs etc.
@@ -76,8 +75,59 @@ Error Messages
   
     line 223, dereference x->foo->bar not safe.
 
-HTML Demo 
-=========
+HTML    
+====
+
+Based on tests/postests/ext0.c
+
+ --------------------- HEREHEREHEREHEREHEREHERE
+ |
+\|/
+
+- use expandNext selector / click /slideToggle to
+  format qual-definition to slide out right after qual
+
+    <Valid(X)><definition>
+
+    > when you click on "valid" the full definition comes sliding out.
+    > need to wrap each qual --- name(args) --- in a single span.
+      currently no such span. see annotvTemplate
+
+- format function types as below
+
+        function parse_group 
+          ( name : char * { Valid ( VV ) }
+          , addr : char * { Valid ( VV ) }
+          ) 
+          int { true } 
+
+  instead of
+
+        int { true } 
+        parse_group ( char * { Valid ( VV ) } name
+                    )
+
+
+- show line-breaks for long types `grp` 
+
+- dont print `true` for trivial refts
+
+    int 
+
+  instead of 
+
+    int { true } gid
+
+- drop function names from types
+    
+    x 
+
+  instead of
+
+    x_parse_group
+
+
+- show types for extern functions `getgrnam`
 
 - Persistent windows on variable click (with same info as hover)
 

@@ -222,7 +222,7 @@ table.funargs tr {
         -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
         -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); 
         display:none; /* block; */
-        /* position: relative; */
+        position: relative;
         left: 1em; top: 2em; 
         z-index: 99;
         margin-left: 5; 

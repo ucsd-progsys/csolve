@@ -714,7 +714,7 @@
 #define HAVE_BTOWC 1
 
 /* Define to 1 if nanosleep mishandles large arguments. */
-#define HAVE_BUG_BIG_NANOSLEEP 1
+/* #undef HAVE_BUG_BIG_NANOSLEEP */
 
 /* Define to 1 if strtold conforms to C99. */
 #define HAVE_C99_STRTOLD 1
@@ -1574,7 +1574,7 @@
 
 /* Define to 1 if getcwd works, except it sometimes fails when it shouldn't,
    setting errno to ERANGE, ENAMETOOLONG, or ENOENT. */
-#define HAVE_PARTLY_WORKING_GETCWD 1
+/* #undef HAVE_PARTLY_WORKING_GETCWD */
 
 /* Define to 1 if you have the `pathconf' function. */
 #define HAVE_PATHCONF 1
@@ -2784,7 +2784,7 @@
 #define HAVE_WORKING_FORK 1
 
 /* Define to 1 if O_NOATIME works. */
-#define HAVE_WORKING_O_NOATIME 1
+#define HAVE_WORKING_O_NOATIME 0
 
 /* Define to 1 if O_NOFOLLOW works. */
 #define HAVE_WORKING_O_NOFOLLOW 1
@@ -3302,7 +3302,7 @@
 #endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */
-/* #undef _FILE_OFFSET_BITS */
+#define _FILE_OFFSET_BITS 64
 
 /* enable compile-time and run-time bounds-checking, and some warnings */
 /* #undef _FORTIFY_SOURCE */
@@ -3357,7 +3357,7 @@
 
 /* Define to rpl_ if the getopt replacement functions and variables should be
    used. */
-#define __GETOPT_PREFIX rpl_
+/* #undef __GETOPT_PREFIX */
 
 /* Define like PROTOTYPES; this can be used by system headers. */
 #define __PROTOTYPES 1
