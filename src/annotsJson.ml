@@ -311,7 +311,8 @@ let annot_of_vbind abbrev s (x, (cr, ct)) =
                    |> Misc.either_partition (fun p -> match deconstruct_pApp p with Some z -> Left z | _ -> Right p) in
   let cs      = cs ++ cs'
                    |> List.filter (not <.> A.Predicate.is_tauto)
-                   |> (fun cs -> if qs = [] && cs = [] then [A.pTrue] else cs) in
+                   |> (fun cs -> if qs = [] && cs = [] then [A.pTrue] else cs) 
+                   |> Misc.flap A.conjuncts in
   { vname = abbrev_binder abbrev x
   ; ctype = mkCtype ct 
   ; quals = List.map (mkQual abbrev) qs

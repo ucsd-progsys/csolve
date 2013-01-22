@@ -253,12 +253,13 @@ $(document).ready(function () {
   });
  
   //Set tooltips for each qualname (shows: expanded qual-def) 
-  $("span[class='qname']").tooltip({
-      position : 'top' 
-    , offset   : [0, 0] // -190, -95] 
-    , delay    : 50
-    , effect   : 'slide'
-  });
+  //DISABLING THIS: done with expandNext
+  //$("span[class='qname']").tooltip({
+  //    position : 'top' 
+  //  , offset   : [0, 0] // -190, -95] 
+  //  , delay    : 50
+  //  , effect   : 'slide'
+  //});
  
   //Set tooltips for each qualargname (shows: var-def-info) 
   $("a[class='qarg']").tooltip({

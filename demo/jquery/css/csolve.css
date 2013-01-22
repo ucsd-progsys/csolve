@@ -223,9 +223,9 @@ table.funargs tr {
         -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); 
         display:none; /* block; */
         position: relative;
-        left: 1em; top: 2em; 
+        /* left: 1em; top: 2em; */ 
         z-index: 99;
-        margin-left: 5; 
+        margin-left: 2; 
         background: #D4FFBF; 
         border: 2px solid #008000;
         padding: 0.8em 1em;

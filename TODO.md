@@ -84,14 +84,15 @@ Based on tests/postests/ext0.c
  |
 \|/
 
-- use expandNext selector / click /slideToggle to
-  format qual-definition to slide out right after qual
+- show line-breaks for long types `grp` 
 
-    <Valid(X)><definition>
+    use 'funargs' instead of 'qualargs' for all quals and preds?
 
-    > when you click on "valid" the full definition comes sliding out.
-    > need to wrap each qual --- name(args) --- in a single span.
-      currently no such span. see annotvTemplate
+
+  ((VV != 0) => ((BLOCK_END([VV]) - VV) >= 16)) 
+; ((VV != 0) => && [(VV > 0) ; (BLOCK_BEGIN([VV]) <= VV) ; (VV < BLOCK_END([VV]))]) 
+; ((VV != 0) => (VV = BLOCK_BEGIN([VV])))
+
 
 - format function types as below
 
@@ -108,7 +109,6 @@ Based on tests/postests/ext0.c
                     )
 
 
-- show line-breaks for long types `grp` 
 
 - dont print `true` for trivial refts
 

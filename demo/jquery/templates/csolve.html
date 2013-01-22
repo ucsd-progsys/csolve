@@ -53,24 +53,32 @@
     </script>    
 
     <script id="qnameTemplate" type="text/x-jquery-tmpl"> 
-      <span class='qname'>$${qname}</span>
+      <span class='qname expandNext'>$${qname}</span>
       <span class="tooltip2">$${qfull}</span>
     </script> 
 
     <script id="annotvTemplate" type="text/x-jquery-tmpl"> 
       <span><span class='typename'>$${ctype}</span>&#123;</span>
       <ul class='qualargs'>
-      {{each(i, q) quals}}
-      <li>{{tmpl(q) "#qnameTemplate"}}
-      <span>(</span>
-      <ul class='qualargs'>{{each(j, qa) q.qargs}}<li>{{tmpl(qa) "#qargTemplate"}}</li>{{/each}}</ul>
-      <span>)</span>
-      </li>
-      {{/each}}
+        {{each(i, q) quals}}
+        <li><span class='qualinst'>
+              {{tmpl(q) "#qnameTemplate"}}
+              <span>(</span>
+                <ul class='qualargs'>
+                  {{each(j, qa) q.qargs}}
+                    <li>{{tmpl(qa) "#qargTemplate"}}</li>
+                  {{/each}}
+                </ul>
+              <span>)</span>
+            </span>     
+        </li>
+        {{/each}}
       </ul>
-      {{each(i, p) conc}}
-      <span class='concbind'>$${p}</span>
-      {{/each}}
+      <ul class='qualargs'>
+        {{each(i, p) conc}}
+          <li><span class='concbind'>$${p}</span></li>
+        {{/each}}
+      </ul>
     &#125; $${varnameOfvarid(vname)} 
     </script>
 
