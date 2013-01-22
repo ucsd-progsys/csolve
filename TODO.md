@@ -108,7 +108,11 @@ Based on tests/postests/ext0.c
         parse_group ( char * { Valid ( VV ) } name
                     )
 
+- show types for extern functions `getgrnam` 
+    extern: filename
+    type:...
 
+- Links to definitions (like CTAGS): for all globvars, funs, vars(?)
 
 - dont print `true` for trivial refts
 
@@ -127,11 +131,9 @@ Based on tests/postests/ext0.c
     x_parse_group
 
 
-- show types for extern functions `getgrnam`
 
 - Persistent windows on variable click (with same info as hover)
 
-- Links to definitions (like CTAGS): for all globvars, funs, vars(?)
 
 
 
