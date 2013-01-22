@@ -1,34 +1,95 @@
-PENDING
-=======
+TODO List
+=========
+
+- Write a TODO...
+- Write HOWTO for starting with `gnu-coreutils`
+- Error messages
+
+------------------------------------------------------------------------------
+
+Output
+======
+
+1. fix html annot type running forever (add-linebreaks etc.)
+2. ctags/Annot for coreutils
+3. how do you pass extra params (e.g. inccheck) for coreutils
+
+
+
+
+
+GNU-Coreutils
+=============
+
+First, make sure the configs are all there:
+   
+    cd external/gnu-coreutils
+    ./csolve.configure
+
+Then, to check a file, say `chgrp`
+
+    cd external/gnu-coreutils/src/
+    ./make.csolve chgrp
+
+
+
+chgrp
+=====
+
+******** ERROR chgrp.c:88 Raw   cons_of_annotinstr 
+******** ERROR chgrp.c:92 Raw   cons_of_call: in 
+******** ERROR chgrp.c:94 Raw   cons_of_call: in 
+******** ERROR chgrp.c:94 Raw   cons_of_call: in 
+******** ERROR chgrp.c:167 Raw   cons_of_edge 
+******** ERROR chgrp.c:197 Raw   cons_of_call: in 
+******** ERROR chgrp.c:197 Raw   cons_of_call: in 
+******** ERROR chgrp.c:197 Raw   cons_of_call: in 
+******** ERROR chgrp.c:197 Raw   cons_of_call: out 
+******** ERROR chgrp.c:288 Raw   cons_of_call: out 
+******** ERROR chgrp.c:289 Raw   cons_of_call: in 
+******** ERROR chgrp.c:293 Raw   cons_of_call: out 
+******** ERROR chgrp.c:297 Raw   cons_of_annotinstr 
+******** ERROR chgrp.c:299 Raw   cons_of_call: out 
+******** ERROR chgrp.c:312 Raw   cons_of_call: in 
+******** ERROR chgrp.c:312 Raw   cons_of_call: in 
+******** ERROR chgrp.c:312 Raw   cons_of_call: in 
+******** ERROR chgrp.c:312 Raw   cons_of_call: out 
+******** ERROR chgrp.c:316 Raw   cons_of_call: in 
+******** ERROR chgrp.c:316 Raw   cons_of_call: in 
+******** ERROR chgrp.c:316 Raw   cons_of_call: in 
+******** ERROR chgrp.c:316 Raw   cons_of_call: out 
+
+
+Error Messages
+==============
 
 * chgrp   -- undo, get decent error after removing OPTARG_LOC annot.
 
-Multi-file HTML (branch: multihtml)
------------------------------------
+   
+* Go through the "Raw String" and replace with meaningful errors
+  corresponding to the function calls, derefs etc.
 
-HEREHEREHEREHERE:
-    
-    Go through the "Raw String" and replace with meaningful errors
-    corresponding to the function calls, derefs etc.
+  Hard because of fun-call subtyping?
 
-    Hard because of fun-call subtyping?
+* Nice error messages: line 223, dereference  `*tmp78` should be cleaned to
 
-Nice error messages: line 223, dereference 
-
-  *tmp78
+    `*tmp78` =====> `x->foo->bar` 
   
-  where reSugar (*tmp78) =====> x->foo->bar render error: 
+  yielding an error message: 
   
     line 223, dereference x->foo->bar not safe.
 
-- Persistent Windows on Variable Click (with same info as hover)
+HTML Demo 
+=========
+
+- Persistent windows on variable click (with same info as hover)
 
 - Links to definitions (like CTAGS): for all globvars, funs, vars(?)
 
 
-* TESTING
 
-external/gnu-coreutils/src/make.csolve chgrp
+TESTING
+=======
 
 ./csolve tests/postests/ll0.c
 
@@ -283,26 +344,6 @@ Pending issues (add attribs etc. to allow):
 		- design simple (collapsed) tree structure
 		- see how many bindings are there in (collapsed) tree structure
 
-5. nuke the ghastly .bnd state threaded through theoremProverZ3.ml
--------------------------------------------------------------------------
-
-- [absLSub]	simplify constraints, to minimize TP calls.
-		see tag 11, 14 in postests/incp.c -- both can be "simpl"ified
-		in general, absloc subtyping has unnecessary indirection
-
-- [concSpec]	make postests/incp.c work with "Conc" spec, 
-		throws an error now -- possibly to do with pat's code
-
-- [inline] 	boolean guards
-
-- [specgen]	use C types to generate a "spec" file for each program,
-		that is, create a candidate input type for each function.
-		can be refined later.
-
-- [arrays]	add "memset" spec ?
-- [globals]	
-- [unions]
-
 ------------------------------ STALE ------------------------------
 
 [depgraph]
@@ -494,11 +535,10 @@ struct node <A0, C0> {
   struct node * <A0> right;
 }
 
+
+
 CoreUtils Notes
 ---------------
-
-
-
 
 
 dump vdescr from varinfo (what do they hold? can we get nicer errors than:
@@ -558,8 +598,6 @@ normal.c:186: Error: Location mismatch:
 A12[] |-> {0 + 4*}: int(4, {true})
 is not included in
 A16[] |-> {0}: int(4, {true})
-
-
 
 
 Tedious Error Messages.

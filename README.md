@@ -6,8 +6,11 @@ README
 Prerequisites
 =============
 
-`csolve` requires a recent OCaml compiler, the GNU multiprecision library,
-and the CamlIDL library.
+`csolve` requires 
+
+- a recent OCaml compiler
+- the GNU multiprecision library, and 
+- the CamlIDL library.
 
 
 Checking Out Of Git
@@ -536,5 +539,24 @@ There is a *rudimentary* vim mode for viewing the output of a csolved-file.
    (once you are in the types-window)
 
 6. Hit Ctrl-t (tag-style) to pop back from a definition.
+
+
+
+
+
+GNU-Coreutils
+=============
+
+First, make sure the configs are all there:
+   
+    cd external/gnu-coreutils
+    ./csolve.configure
+
+Then, to check a file, say `chgrp`
+
+    cd external/gnu-coreutils/src/
+    ./make.csolve chgrp
+
+
 
 
