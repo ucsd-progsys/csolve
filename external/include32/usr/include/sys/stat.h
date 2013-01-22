@@ -216,9 +216,9 @@ extern int stat (__const char *__restrict NONNULL STRINGPTR __file,
 extern int fstat (int __fd, struct stat *__buf) __THROW __nonnull ((2));
 #else
 # ifdef __REDIRECT_NTH
-extern int __REDIRECT_NTH (stat, (__const char *__restrict __file,
-				  struct stat *__restrict __buf), stat64)
-     __nonnull ((1, 2));
+extern int __REDIRECT_NTH (stat, (__const char *__restrict NONNULL STRINGPTR __file,
+				  struct stat *__restrict NONNULL __buf), stat64)
+     __nonnull ((1, 2)) OKEXTERN;
 extern int __REDIRECT_NTH (fstat, (int __fd, struct stat *__buf), fstat64)
      __nonnull ((2));
 # else
