@@ -91,9 +91,9 @@ span.qarglinks {
 }
 
 ul.qualargs li span.qarg { 
-    display:inline; 
+    display:inline-block; 
     white-space: nowrap;
-    margin: -5px;
+    margin: 8px;
     text-align: left;
     padding: 0;
 }
@@ -101,7 +101,7 @@ ul.qualargs li span.qarg {
 ul.qualargs li a.qarg { 
     display:inline; 
     white-space: nowrap;
-    margin: -5px;
+    margin: -10px;
 }
 
 ul.qualargs {
@@ -111,9 +111,9 @@ ul.qualargs {
 }
 
 ul.qualargs li { 
-    display:inline; 
+    display:inline-block; 
     white-space: nowrap;
-    margin: -3px;
+    margin: -8px;
     padding-right: 0;
 }
 
@@ -127,16 +127,40 @@ ul.qualargs li:first-child::before {
   content: "";
 }
 
-/*
-ul.qualargs li:last-child::after {
-  content: ")";
-}
-*/
-
 ul.qualargs + *{
   clear:left;
 }  
-    
+   
+
+
+/****** New qualargs ****************************************/
+
+ul.nqualargs { 
+  list-style: none ;
+  display: inline;   
+  margin-left: -50px;
+}
+      
+ul.nqualargs li {
+  display: inline-block;
+  margin-right: -4px;
+}
+      
+ul.nqualargs li::before {
+  content: ", ";
+  white-space: normal;
+}
+      
+ul.nqualargs li:first-child::before {
+  content: "(";
+  margin-right: -10px;
+}
+
+ul.nqualargs li:last-child::after {
+  content: ")";
+  margin-left: -10px;
+}
+
 /***** Rendering Types, Refinements, Vars, Etc. ************/
 
 span.funname {
