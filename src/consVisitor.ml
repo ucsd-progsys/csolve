@@ -136,7 +136,7 @@ let sto_of_wld = snd4
 let strengthen_instantiated_aloc ffm ptrname aloc ld =
   Ct.RefCTypes.LDesc.mapn (fun _ pl fld -> FI.strengthen_final_field (Sloc.SlocMap.find aloc ffm) ptrname pl fld) ld
 
-let cons_of_annot me loc tag grd ffm effs ((env, sto, tago, _) as wld) = function 
+let cons_of_annot me loc tag grd ffm effs ((env, sto, tago, sle) as wld) = function 
   | Refanno.Gen  (cloc, aloc) ->
       let _      = CM.assertLoc loc (RS.mem sto cloc) "cons_of_annot: (Gen)!" in
       let sto'   = RS.remove sto cloc in
@@ -714,11 +714,10 @@ let wcons_of_block me loc (_, rsto, _, sle) i des =
   let wenv = phis |> List.fold_left (weaken_undefined me true) env in
   let ws1  = phis |> List.map  (fun v -> FI.ce_find  (FA.name_of_varinfo v) env)
                   |> Misc.flap (FI.make_wfs wenv csto) in
-  (*let ws2  = FI.make_wfs_refstore wenv (RS.upd sto csto) csto in
-  let ws2  = FI.make_wfs_refstore wenv sto sto in*)
+  let ws2  = FI.make_wfs_refstore wenv (RS.upd rsto csto) csto in
   let ws3  = des |> Misc.flap (fun (v, cr) -> FI.make_wfs wenv csto cr) in
-  (*let ws4  = wcons_of_block_effects me loc csto i in*)
-  ws1 ++ ws3
+  let ws4  = wcons_of_block_effects me loc csto i in
+  ws1 ++ ws2 ++ ws3 ++ ws4
 
 let cons_of_init_block me loc (env, sto, _, _) =
   let tag = CF.tag_of_instr me 0 0 loc (T.Raw "cons_of_init_block") in

@@ -534,9 +534,12 @@ let create_shapeo tgr gnv env gst sci = function
 let create tgr gnv gst sci sho = 
   let formalm   = formalm_of_fdec sci.ST.fdec in
   let env       = env_of_fdec sho gnv sci.ST.fdec in
+  (* MK: *)
   (* this expects to immediately rewrite the environment with the mapped
    * slocs from hrefanno, but you can't do that until you'd sat down and walked
    * over the annotations. that's why it was using theta previously.. *)
+  (* actually, i don't think it's ever safe to assume that there will be a
+   * single theta's worth of substitutions. HENCE *)
   (* the only solution is either another pass that builds theta, or to do
     * things on the fly: just pull the environment untranslated out, and
     * when you do cons_of_sci, you say "ok, now i see an annotation, i'm
