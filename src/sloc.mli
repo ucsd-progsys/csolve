@@ -31,6 +31,7 @@ val none           : t
 val canonical      : t -> t
 
 val fresh_abstract : CilMisc.srcinfo -> t
+val abstract_of_int: CilMisc.srcinfo -> int -> t
 val copy_abstract  : CilMisc.srcinfo list -> t -> t
 val copy_concrete  : t -> t
 

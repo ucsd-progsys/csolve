@@ -201,3 +201,4 @@ let create cil spec decs scim tgr =
   cons_of_decs tgr spec gnv gst decs
   |> Consindex.create
   |> cons_of_scis tgr gnv gst scim (Some shm)
+  |> begin fun cs -> (gst, cs) end
