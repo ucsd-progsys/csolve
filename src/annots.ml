@@ -111,6 +111,18 @@ let apply_solution =
 let apply_solution s x = 
   Misc.do_catch_ret "Annots.apply_solution" (apply_solution s) x x
 
+let apply_solution_qs qs s =
+  let s' = fun v ->
+    List.map begin function
+      | (Ast.Bexp (Ast.App (sym,args),_),_) as p ->
+        begin match Qualifier.expandPred sym args with
+          | None    -> p
+          | Some p' -> p'
+        end
+      | p -> p
+    end (s v)
+  in apply_solution s'
+
 (*******************************************************************)
 (********** Building Map from Fun -> (Sloc -> Cil.typ) *************)
 (*******************************************************************)
@@ -260,9 +272,13 @@ let d_bind_raw () = function
 (************************ Write to File ****************************)
 (*******************************************************************)
 
-let generate_ispec bs = 
+let generate_ispec gst bs = 
   let fn = !Co.csolve_file_prefix ^ ".infspec" in
   Misc.with_out_file fn begin fun oc -> 
+    let _ = Ctypes.RefCTypes.Store.fold_locs (fun l ld _ -> 
+      Pretty.fprintf oc "loc %a %a %a@!@!"
+        Sloc.d_sloc l Ct.d_specTypeRel Ctypes.HasType Ctypes.RefCTypes.LDesc.d_ldesc ld |> ignore) () gst
+    in	
     bs |> Misc.map_partial (function TFun (x,y) -> Some (x,y) | _ -> None)
        |> (fun bs -> PP.seq ~sep:(PP.text "\n\n") ~doit:(fun (fn, (cf, _)) ->
              PP.dprintf "%s ::\n@[%a@]" fn Ct.d_refcfun cf) ~elements:bs)
@@ -392,12 +408,14 @@ class annotations = object (self)
     |> (generate_annots <**> generate_tags)
     |> (fun _ -> generate_vmap fssam)
 
-  method dump_infspec decs s =
+  method dump_infspec gst (decs:CM.dec list) (qs:Qualifier.t list) s =
     let ds = decs |> Misc.map_partial (function CM.FunDec (fn,_,_) -> Some fn | _ -> None) |>  SS.of_list in
-    Misc.hashtbl_to_list funt
-    |> Misc.filter (fst <+> Misc.flip SS.mem ds)
-    |> Misc.map (fun (x,y) -> apply_solution s (TFun (x,y)))
-    |> generate_ispec
+    let binds = Misc.hashtbl_to_list funt
+             |> Misc.filter (fst <+> Misc.flip SS.mem ds)
+             |> Misc.map (fun (x,y) -> apply_solution_qs qs s (TFun (x,y)))
+    in
+    let TSto (_,gst') = apply_solution_qs qs s (TSto ("global", gst)) in
+    generate_ispec gst' binds
 end
 
 
@@ -413,6 +431,6 @@ let annot_sto     = fun x y     -> (!annr)#add_sto x y
 let annot_var     = fun x y     -> (!annr)#add_var x y
 let annot_asgn    = fun x l z   -> (!annr)#add_asgn x l z
 let clear         = fun _       -> annr := new annotations 
-let dump_infspec  = fun decs s  -> (!annr)#dump_infspec decs s
+let dump_infspec  = fun gst decs qs s  -> (!annr)#dump_infspec gst decs qs s
 let dump_annots   = fun so      -> (!annr)#dump_annots so
 let dump_bindings = fun ()      -> (!annr)#get_binds ()

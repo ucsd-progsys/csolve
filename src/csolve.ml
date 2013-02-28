@@ -318,12 +318,12 @@ let liquidate cil =
   let _         = E.log "\nDONE: SSA conversion \n" in
   let tgr       = scim |> SM.to_list |> Misc.map snd |> T.create in
   let _         = E.log "\nDONE: TAG initialization\n" in
-  let ci        = BS.time "Cons: Generate" (Consgen.create cil spec decs scim) tgr in
+  let gst,ci    = BS.time "Cons: Generate" (Consgen.create cil spec decs scim) tgr in
   let _         = E.log "DONE: constraint generation \n" in
   let res       = Ci.solve ci !Co.csolve_file_prefix qs in
   let _         = E.log "DONE SOLVING" in
   let _         = if !Co.vannots then BS.time "Annots: dump" dump_annots cil qs tgr res in
-  let _         = if SS.is_empty !Co.inccheck then Annots.dump_infspec decs res.FI.soln in
+  let _         = if SS.is_empty !Co.inccheck then Annots.dump_infspec gst decs qs res.FI.soln in
   let _         = print_unsat_locs tgr res in
   let _         = BS.print log "\nCSolve Time \n" in
   match res.FI.unsats with 

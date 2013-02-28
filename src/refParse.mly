@@ -1,7 +1,7 @@
 %{
 
-  module Misc = FixMisc
-  module A   = Ast
+module Misc = FixMisc
+module A   = Ast
 module So  = Ast.Sort
 module Sy  = A.Symbol
 module SM  = Misc.StringMap
@@ -35,7 +35,7 @@ let abs_sloctable = Hashtbl.create 17
 let cnc_sloctable = Hashtbl.create 17
 
 let mk_sloc_abstract id =
-  Misc.do_memo abs_sloctable Sloc.fresh_abstract (CilMisc.srcinfo_of_string ("from spec: A"^(string_of_int id))) id
+  Misc.do_memo abs_sloctable (Sloc.abstract_of_int (CilMisc.srcinfo_of_string ("from spec: A"^(string_of_int id)))) id id
 
 let mk_sloc_concrete id absid =
   Misc.do_memo cnc_sloctable Sloc.copy_concrete (mk_sloc_abstract absid) id
@@ -239,16 +239,16 @@ indbind:
   ;
 
 reftype:
-    INT LPAREN Num COMMA index COMMA LC Id MID pred RC RPAREN 
+    INT LPAREN Num COMMA index COMMA LC Id COLON INT MID preds RC RPAREN 
                                         { let ct = Ctypes.Int ($3, $5) in
                                           let v  = Sy.of_string $8 in 
-                                          FI.t_pred ct v $10 
+                                          FI.t_pred ct v (Ast.pAnd $12)
                                         }
   
-  | REF LPAREN sloc COMMA index COMMA LC Id MID pred RC RPAREN
+  | REF LPAREN sloc COMMA index COMMA LC Id COLON sloc MID preds RC RPAREN
                                         { let ct = Ctypes.Ref ($3, $5) in
                                           let v  = Sy.of_string $8 in 
-                                          FI.t_pred ct v $10 
+                                          FI.t_pred ct v (Ast.pAnd $12)
                                         }
   | FREF LPAREN funtyp COMMA index COMMA LC Id MID pred RC RPAREN
                                         { let ct = Ctypes.FRef (Ctypes.cfun_of_refcfun $3, $5) in
@@ -296,7 +296,8 @@ argbind:
 
 
 preds:
-    LB RB                               { [] }
+    pred                                { [$1] }
+  | LB RB                               { [] }
   | LB predsne RB                       { $2 }
   ;
 
@@ -308,6 +309,7 @@ predsne:
 pred:
     TRUE				{ A.pTrue }
   | FALSE				{ A.pFalse }
+  | QM expr                             { A.pBexp ($2) }
   | AND preds   			{ A.pAnd ($2) }
   | OR  preds 	        		{ A.pOr  ($2) }
   | NOT pred				{ A.pNot ($2) }

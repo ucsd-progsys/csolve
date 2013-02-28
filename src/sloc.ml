@@ -129,6 +129,9 @@ let copy_abstract z' = function
   | Abstract i   
   | Concrete (i, _) -> Abstract (fresh_slocid (z' ++ (slocinfo i)))
 
+(* API *)
+let abstract_of_int i n = 
+  Hashtbl.add slocinfot n [i]; Abstract n
 
 let none = fresh_abstract (CilMisc.srcinfo_of_string "none")
 
