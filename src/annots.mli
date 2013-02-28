@@ -50,5 +50,8 @@ val annot_sto     : string -> Ctypes.refstore -> unit
 val annot_asgn    : Cil.varinfo -> Cil.location -> rhs -> unit 
 val clear         : unit -> unit
 val dump_annots   : FixConstraint.soln option -> unit
-val dump_infspec  : CilMisc.dec list -> FixConstraint.soln -> unit
+val dump_infspec  : Ctypes.refstore 
+                    -> CilMisc.dec list
+                    -> Qualifier.t list
+                    -> FixConstraint.soln -> unit
 val dump_bindings : unit -> binding list
