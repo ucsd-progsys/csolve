@@ -1,0 +1,26 @@
+
+../tests/todo/iflow/iflow02.c:17:
+
+constraint:
+ env  [ fd2_main:{VV : int | [TAGGED0(VV)]}
+      ; fd1_main:{VV : int | [TAGGED0(VV)]}
+      ; d_main:{VV : ptr(A2) | [&& [ Begin(VV)
+                                   ; TAGGED2(VV, fd2_main, fd1_main)
+                                   ; TAGGED2(VV, fd1_main, fd2_main)
+                                   ; Valid(VV)]]}
+      ; UNCHECKED:{VV : func(1, [@(0) ; int]) | []}
+      ; TAG:{VV : func(1, [@(0) ; int]) | []}
+      ; SKOLEM:{VV : func(0, [int ; int]) | []}
+      ; EWRITE:{VV : int | []}
+      ; EREAD:{VV : int | []}
+      ; DEREF:{VV : func(1, [@(0) ; @(1)]) | []}
+      ; BLOCK_END:{VV : func(1, [@(0) ; @(0)]) | []}
+      ; BLOCK_BEGIN:{VV : func(1, [@(0) ; @(0)]) | []}] 
+ grd true 
+ lhs {VV : int | [(VV = fd1_main)]} 
+ rhs {VV : int | [(TAG([VV]) = TAG([d_main]))]} 
+ id 6 tag [1;1;-1;0] //main 
+
+**********************************************************
+******** ERROR ../tests/todo/iflow/iflow02.c:17 Raw   cons_of_call: in 
+**********************************************************

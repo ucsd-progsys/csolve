@@ -1,0 +1,65 @@
+% Created 2013-01-21 Mon 19:38
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{soul}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\tolerance=1000
+\providecommand{\alert}[1]{\textbf{#1}}
+
+\title{rules}
+\author{Alexander Bakst}
+\date{\today}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs Org-mode version 7.8.11}}
+
+\begin{document}
+
+\maketitle
+
+\setcounter{tocdepth}{3}
+\tableofcontents
+\vspace*{1cm}
+\section{Simple Language}
+\label{sec-1}
+\subsection{Syntax}
+\label{sec-1-1}
+
+
+\begin{verbatim}
+t = int | t ref
+
+e = x
+  | &x
+  | !x
+  | e op e
+  | x := e
+  | let x = e in e
+  | e = f(e, ..., e)
+  | if e then e else e
+
+f = function f(x0, ..., xn) { e }    
+
+p = f0;...;fn
+\end{verbatim}
+
+   \begin{align*}
+   \Gamma \vdash x_1:t \Gamma \vdash x_2:t \\
+   \cline{1-2}
+   \end{align*}
+\subsection{Types}
+\label{sec-1-2}
+
+\end{document}

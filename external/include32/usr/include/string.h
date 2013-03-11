@@ -41,9 +41,10 @@ __BEGIN_DECLS
 
 __BEGIN_NAMESPACE_STD
 /* Copy N bytes of SRC to DEST.  */
-extern void *memcpy (void *__restrict __dest,
-		     __const void *__restrict __src, size_t __n)
-     __THROW __nonnull ((1, 2));
+extern void * LOC(L) memcpy (void * LOC(L) VALIDPTR SIZE_GE(__n) __restrict __dest,
+                             __const void FINAL * VALIDPTR SIZE_GE(__n) __restrict __src,
+                             size_t __n)
+     __THROW __nonnull ((1, 2)) OKEXTERN;
 /* Copy N bytes of SRC to DEST, guaranteeing
    correct behavior for overlapping strings.  */
 extern void *memmove (void *__dest, __const void *__src, size_t __n)

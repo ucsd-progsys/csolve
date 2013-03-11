@@ -382,12 +382,12 @@ __END_NAMESPACE_C99
 extern int vasprintf (char **__restrict __ptr, __const char *__restrict __f,
 		      _G_va_list __arg)
      __THROW __attribute__ ((__format__ (__printf__, 2, 0))) __wur;
-extern int __asprintf (char **__restrict __ptr,
+extern int __asprintf (char ** __restrict __ptr,
 		       __const char *__restrict __fmt, ...)
      __THROW __attribute__ ((__format__ (__printf__, 2, 3))) __wur;
-extern int asprintf (char **__restrict __ptr,
+extern int asprintf (char * NNSTART NNSTRINGPTR * OK __restrict __ptr,
 		     __const char *__restrict __fmt, ...)
-     __THROW __attribute__ ((__format__ (__printf__, 2, 3))) __wur;
+     __THROW __attribute__ ((__format__ (__printf__, 2, 3))) OKEXTERN __wur;
 #endif
 
 #ifdef __USE_XOPEN2K8
@@ -836,7 +836,7 @@ __BEGIN_NAMESPACE_STD
 
    This function is a possible cancellation point and therefore not
    marked with __THROW.  */
-extern void perror (__const char *__s);
+extern void perror (__const char FINAL NULLTERMSTR *__s) OKEXTERN;
 __END_NAMESPACE_STD
 
 /* Provide the declarations for `sys_errlist' and `sys_nerr' if they

@@ -98,7 +98,7 @@ extern __const char *hstrerror (int __err_num) __THROW;
 /* Description of data base entry for a single host.  */
 struct hostent
 {
-  char *h_name;			/* Official name of host.  */
+  char *h_name;	/* Official name of host.  */
   char **h_aliases;		/* Alias list.  */
   int h_addrtype;		/* Host address type.  */
   int h_length;			/* Length of address.  */
@@ -140,7 +140,8 @@ extern struct hostent *gethostbyaddr (__const void *__addr, __socklen_t __len,
 
    This function is a possible cancellation point and therefore not
    marked with __THROW.  */
-extern struct hostent *gethostbyname (__const char *__name);
+extern struct hostent FINAL * NNOK NNSTART
+gethostbyname (__const char FINAL NULLTERMSTR IMMUTABLE(THE_STRING) * STRINGPTR __name) OKEXTERN;
 
 #ifdef __USE_MISC
 /* Return entry from host data base for host with NAME.  AF must be

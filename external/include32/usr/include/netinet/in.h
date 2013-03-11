@@ -368,7 +368,7 @@ extern uint16_t ntohs (uint16_t __netshort)
 extern uint32_t htonl (uint32_t __hostlong)
      __THROW __attribute__ ((__const__));
 extern uint16_t htons (uint16_t __hostshort)
-     __THROW __attribute__ ((__const__));
+     __THROW __attribute__ ((__const__)) OKEXTERN;
 
 #include <endian.h>
 

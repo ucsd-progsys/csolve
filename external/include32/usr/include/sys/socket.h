@@ -102,7 +102,7 @@ typedef union { __SOCKADDR_ALLTYPES
 /* Create a new socket of type TYPE in domain DOMAIN, using
    protocol PROTOCOL.  If PROTOCOL is zero, one is chosen automatically.
    Returns a file descriptor for the new socket, or -1 for errors.  */
-extern int socket (int __domain, int __type, int __protocol) __THROW;
+extern int socket (int __domain, int __type, int __protocol) __THROW OKEXTERN;
 
 /* Create two new sockets, of type TYPE in domain DOMAIN and using
    protocol PROTOCOL, which are connected to each other, and put file
@@ -126,7 +126,11 @@ extern int getsockname (int __fd, __SOCKADDR_ARG __addr,
 
    This function is a cancellation point and therefore not marked with
    __THROW.  */
+#ifndef CIL
 extern int connect (int __fd, __CONST_SOCKADDR_ARG __addr, socklen_t __len);
+#else
+extern int connect (int __fd, void * VALIDPTR SIZE_GE(__len) __addr, socklen_t __len) OKEXTERN;
+#endif
 
 /* Put the address of the peer connected to socket FD into *ADDR
    (which is *LEN bytes long), and its actual length into *LEN.  */

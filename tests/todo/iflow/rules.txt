@@ -1,0 +1,21 @@
+Simple Language
+===============
+
+t = int | t ref
+
+e = x
+  | !x
+  | ref e
+  | e op e
+  | x := e
+  | let x = e in e
+  | e = f(e, ..., e)
+  | if e then e else e
+
+f = function f(x0, ..., xn) { e }    
+p = f0;...;fn
+
+Basic Types
+===========
+
+

@@ -1,0 +1,5 @@
+qualif TAGGED(v:ptr, a:int) : TAG([v]) = a
+qualif TAGGED2(v:ptr, a:int, b:int) : || [TAG([v]) = a; TAG([v]) = b]
+qualif TAGGED(v:int)        : TAG([v]) = v
+qualif TAG_EQ(v:ptr, p:ptr) : TAG([v]) = TAG([p])
+qualif TAG_EQ(v:ptr, a:ptr) : TAG([v]) = TAG([a])

@@ -1,0 +1,46 @@
+
+../tests/todo/iflow/iflow03.c:23:
+
+constraint:
+ env  [ y_main__SSA__blk_0_1:{VV : ptr(A10) | [(VV = tmp___0_main__SSA__blk_0_1)]}
+      ; y_main:{VV : ptr(A6) | []}
+      ; x_main__SSA__blk_0_1:{VV : ptr(A3) | [(VV = tmp_main__SSA__blk_0_1)]}
+      ; x_main:{VV : ptr(A4) | []}
+      ; tmp_main__SSA__blk_0_1:{VV : ptr(A3) | [&& [ ((VV + 1) <= BLOCK_END([VV]))
+                                                   ; (VV < BLOCK_END([VV]))
+                                                   ; (BLOCK_BEGIN([VV]) <= VV)
+                                                   ; (VV > 0)
+                                                   ; (TAG([VV]) = TAG([fd1_main]))]]}
+      ; tmp_main:{VV : ptr(A5) | []}
+      ; tmp___0_main__SSA__blk_0_1:{VV : ptr(A10) | [&& [ ((VV + 1) <= BLOCK_END([VV]))
+                                                        ; (VV < BLOCK_END([VV]))
+                                                        ; (BLOCK_BEGIN([VV]) <= VV)
+                                                        ; (VV > 0)
+                                                        ; (TAG([VV]) = TAG([fd2_main]))]]}
+      ; tmp___0_main:{VV : ptr(A7) | []}
+      ; fd2_main:{VV : int | [&& [ TAGGED2(VV, EREAD, fd1_main)
+                                 ; TAGGED2(VV, EWRITE, fd1_main)
+                                 ; TAGGED2(VV, fd1_main, fd1_main)
+                                 ; TAGGED2(VV, fd2_main, fd1_main)
+                                 ; Pos(VV)]]}
+      ; fd1_main:{VV : int | [&& [ TAGGED2(VV, EREAD, fd2_main)
+                                 ; TAGGED2(VV, EWRITE, fd2_main)
+                                 ; TAGGED2(VV, fd1_main, fd2_main)
+                                 ; TAGGED2(VV, fd2_main, fd2_main)
+                                 ; Pos(VV)]]}
+      ; UNCHECKED:{VV : func(1, [@(0) ; int]) | []}
+      ; TAG:{VV : func(1, [@(0) ; int]) | []}
+      ; SKOLEM:{VV : func(0, [int ; int]) | []}
+      ; EWRITE:{VV : int | []}
+      ; EREAD:{VV : int | []}
+      ; DEREF:{VV : func(1, [@(0) ; @(1)]) | []}
+      ; BLOCK_END:{VV : func(1, [@(0) ; @(0)]) | []}
+      ; BLOCK_BEGIN:{VV : func(1, [@(0) ; @(0)]) | []}] 
+ grd true 
+ lhs {VV : int | [(VV = fd2_main)]} 
+ rhs {VV : int | [(TAG([VV]) = TAG([x_main__SSA__blk_0_1]))]} 
+ id 5 tag [2;1;-9;0] //main 
+
+**********************************************************
+******** ERROR ../tests/todo/iflow/iflow03.c:23 Raw   cons_of_call: in 
+**********************************************************

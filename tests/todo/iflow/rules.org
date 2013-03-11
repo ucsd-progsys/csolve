@@ -1,0 +1,28 @@
+* Simple Language
+
+** Syntax
+  #+BEGIN_EXAMPLE
+  t = int | t ref
+
+  e = x
+    | &x
+    | !x
+    | e op e
+    | x := e
+    | let x = e in e
+    | e = f(e, ..., e)
+    | if e then e else e
+
+  f = function f(x0, ..., xn) { e }    
+
+  p = f0;...;fn
+  #+END_EXAMPLE
+
+   \begin{align*}
+   \Gamma \vdash x_1:t \Gamma \vdash x_2:t
+   \cline{1-2}
+   \end{align*}
+
+
+** Types
+
