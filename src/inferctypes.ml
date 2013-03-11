@@ -396,6 +396,7 @@ let constrain_stmt tgr glocs qlocs gqlocs ((fs, _) as env) et rtv s tsub sub sto
       | C.Block _           -> ([], tsub, sub, sto)       (* we'll visit this later as we iterate through blocks *)
       | C.Loop (_, _, _, _) -> ([], tsub, sub, sto)       (* ditto *)
       | C.Return (rexp, _)  -> constrain_return tgr loc et fs tsub sub sto rtv rexp
+        >> begin fun (_,_,sub,_) -> check_locs_disjoint_under_sub sub glocs qlocs gqlocs end
       | _                   -> E.s <| C.bug "Unimplemented constrain_stmt: %a@!@!" C.dn_stmt s
 
 let constrain_phi_defs tgr ve (tsub, sub, sto) (vphi, vdefs) =

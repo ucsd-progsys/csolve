@@ -333,6 +333,7 @@ and z3Pred me env = function
       a
  | A.Forall (xts, p), _ -> 
       let (xs, ts) = List.split xts in
+      let env      = SM.extend env (SM.of_list xts) in
       let zargs    = Array.of_list (List.map2 (z3Bind me env) xs ts) in
       let zts      = Array.of_list (List.map  (z3Type me) ts) in 
       let rv       = Z3.mk_forall me.c 0 [||] zts zargs (z3Pred me env p) in

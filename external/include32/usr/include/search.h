@@ -20,6 +20,7 @@
 #ifndef _SEARCH_H
 #define	_SEARCH_H 1
 
+#include <csolve.h>
 #include <features.h>
 
 #define __need_size_t
@@ -57,6 +58,10 @@ typedef int (*__compar_fn_t) (__const void *, __const void *);
 # ifdef	__USE_GNU
 typedef __compar_fn_t comparison_fn_t;
 # endif
+#endif
+
+#ifdef CIL
+typedef int (*__compar_fn_t) (__const void * VAR(a), __const void * VAR(a));
 #endif
 
 /* Action which shall be performed in the call the hsearch.  */
@@ -127,13 +132,12 @@ VISIT;
 
 /* Search for an entry matching the given KEY in the tree pointed to
    by *ROOTP and insert a new element if not found.  */
-extern void *tsearch (__const void *__key, void **__rootp,
-		      __compar_fn_t __compar);
-
+extern void * VAR(a) * tsearch (__const void * VAR(a) __key, void *NNSTART *__rootp,
+                                __compar_fn_t __compar) OKEXTERN;
 /* Search for an entry matching the given KEY in the tree pointed to
    by *ROOTP.  If no matching entry is available return NULL.  */
-extern void *tfind (__const void *__key, void *__const *__rootp,
-		    __compar_fn_t __compar);
+extern void * VAR(a) * tfind (__const void * VAR(a) __key, void *START *__rootp,
+		    __compar_fn_t __compar) OKEXTERN;
 
 /* Remove the element matching KEY from the tree pointed to by *ROOTP.  */
 extern void *tdelete (__const void *__restrict __key,
