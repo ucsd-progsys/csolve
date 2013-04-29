@@ -130,6 +130,7 @@ let so_pun  = So.t_func 1 [So.t_generic 0; so_int]
 let so_drf  = So.t_func 1 [So.t_generic 0; So.t_generic 1]
 let so_tagset = So.t_func 1 [So.t_generic 0; so_intset]
 let so_tagp = So.t_func 1 [So.t_generic 0; so_int; so_bool]
+let so_mut  = So.t_func 1 [So.t_generic 0; so_bool]
 
 let vv_int = Sy.value_variable so_int 
 let vv_bls = Sy.value_variable so_bls
@@ -146,6 +147,7 @@ let eff_read   = name_of_string "EREAD"
 let eff_write  = name_of_string "EWRITE"
 let uf_tagset  = name_of_string "TAGSET"
 let uf_tagp    = name_of_string "TAGP"
+let uf_mutable = name_of_string "MUTABLE"
 
 
 (* API *)
@@ -153,12 +155,14 @@ let eApp_bbegin  = fun x -> A.eApp (uf_bbegin,  [x])
 let eApp_bend    = fun x -> A.eApp (uf_bend,    [x])
 let eApp_uncheck = fun x -> A.eApp (uf_uncheck, [x])
 let eApp_deref   = fun x so -> A.eCst (A.eApp (uf_deref, [x]), so)
-let eApp_skolem  = fun x -> A.eApp (uf_skolem, [x])
-let eApp_tagset = fun x -> A.eApp (uf_tagset, [x])
+let eApp_skolem  = fun x -> A.eApp   (uf_skolem, [x])
+let eApp_tagset = fun x -> A.eApp    (uf_tagset, [x])
 let eApp_tagp    = fun x y -> A.eApp (uf_tagp, [x; y])
+let eApp_mutable = fun x -> A.eApp   (uf_mutable, [x])
 
 (* API *)
-let axioms      = [A.pEqual (A.zero, eApp_bbegin A.zero)]
+let axioms      = [A.pEqual (A.zero, eApp_bbegin A.zero);
+                   A.pBexp (eApp_mutable A.zero)]
 let sorts       = [] 
 let builtinm    = [(uf_bbegin,  C.make_reft vv_bls so_bls [])
                   ;(uf_bend,    C.make_reft vv_bls so_bls [])
@@ -169,6 +173,7 @@ let builtinm    = [(uf_bbegin,  C.make_reft vv_bls so_bls [])
                   ;(eff_write,  C.make_reft vv_int so_int [])
                   ;(uf_tagset,  C.make_reft vv_bls so_tagset [])
                   ;(uf_tagp,    C.make_reft vv_bls so_tagp [])
+                  ;(uf_mutable, C.make_reft vv_bls so_mut [])
                   ]
                   |> YM.of_list
 

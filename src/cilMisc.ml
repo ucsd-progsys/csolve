@@ -366,6 +366,8 @@ let hasRoomAttribute        = "csolve_has_room"         (* TODO: subsume roomFor
 let nonnullHasRoomAttribute = "csolve_nonnull_has_room" (* TODO: subsume nonnullRoomForAttribute *)
 let typeVarAttribute        = "csolve_type_var"
 let instantiateTypeVarAttribute = "csolve_inst_tvar"
+let immutableAttribute      = "csolve_immutable"
+let mutableAttribute        = "csolve_mutable"
 
 let has_array_attr     = hasAttribute arrayAttribute
 let has_pos_attr       = hasAttribute "pos"
@@ -914,7 +916,7 @@ module Pheapify: Visitor = struct
     cType
       "void * __attribute__ ((csolve_predicate (%p:outRef))) __attribute__ ((csolve_sloc (%p:outSloc))) () (int __attribute__ ((csolve_predicate (%p:inRef))) sz)"
       [("inRef",   Fp (AStr "V >= 0"));
-       ("outRef",  Fp (AStr "&& [V > 0; V = BLOCK_BEGIN([V]); BLOCK_END([V]) = (V + sz)]"));
+       ("outRef",  Fp (AStr "&& [V > 0; V = BLOCK_BEGIN([V]); BLOCK_END([V]) = (V + sz); ? MUTABLE([BLOCK_BEGIN([V])])]"));
        ("outSloc", Fp (AStr "!L"))]
 
   let alloc f =

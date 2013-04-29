@@ -85,6 +85,8 @@ val anyRefAttribute         : string
 val anyTypeAttribute        : string
 val typeVarAttribute        : string
 val instantiateTypeVarAttribute : string
+val immutableAttribute      : string
+val mutableAttribute        : string
 
 val hasRoomAttribute        : string
 val nonnullHasRoomAttribute : string

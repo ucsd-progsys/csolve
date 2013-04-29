@@ -395,6 +395,16 @@ let t_size_ptr ct size =
              A.pAtom (FA.eApp_bbegin evv, A.Eq, evv);
              A.pAtom (FA.eApp_bend evv, A.Eq, A.eBin (evv, A.Plus, A.eCon (A.Constant.Int size)))])
 
+let t_size_mutable_ptr ct size =
+  let so  = sort_of_prectype ct in
+  let vv  = Sy.value_variable so in
+  let evv = A.eVar vv in
+  t_pred ct vv
+    (A.pAnd [A.pAtom (evv, A.Gt, A.zero);
+             A.pAtom (FA.eApp_bbegin evv, A.Eq, evv);
+             A.pAtom (FA.eApp_bend evv, A.Eq, A.eBin (evv, A.Plus, A.eCon (A.Constant.Int size)));
+             A.pBexp (FA.eApp_mutable (FA.eApp_bbegin evv))])
+
 let t_ptr_footprint env v =
      ce_find (FA.name_of_varinfo v) env
   |> Ct.ctype_of_refctype
@@ -412,7 +422,14 @@ let t_valid_ptr ct =
   t_pred ct vv (A.pOr [A.pAtom (FA.eApp_uncheck evv, A.Eq, A.one);
                        A.pAnd [(* A.pAtom (evv, A.Ne, A.zero)
                               ; *) A.pAtom (FA.eApp_bbegin evv, A.Le, evv)
-                              ; A.pAtom (evv, A.Lt, FA.eApp_bend evv)]])
+                              ; A.pAtom (evv, A.Lt, FA.eApp_bend evv)
+                              ]])
+let t_mutable_ptr ct =
+  let so  = sort_of_prectype ct in
+  let vv  = Sy.value_variable so in
+  let evv = A.eVar vv in
+  t_pred ct vv (A.pOr [A.pAtom (FA.eApp_uncheck evv, A.Eq, A.one);
+                       A.pBexp (FA.eApp_mutable (FA.eApp_bbegin evv))])
 
 let t_start_ptr ct =
   let so  = sort_of_prectype ct in
@@ -1152,6 +1169,8 @@ and make_cs_refcfun env p rf rf' tag loc =
   let env         = it' |> List.map (Misc.app_fst FA.name_of_string)
                         |> ce_adds env in
   let ircs, ircs' = Misc.map_pair (List.map snd) (it, it') in
+  let cs1,_ = make_cs_refstore env p hi' hi true None tag loc  in
+  (* let _ = Format.printf "%a" (FixMisc.pprint_many true "\n" (FixConstraint.print_t None)) cs1 in *)
   (* contravariant inputs *)
       (make_cs_tuple env p [] [] ircs' ircs None tag loc)  
   +++ (make_cs_refstore env p hi' hi true None tag loc)

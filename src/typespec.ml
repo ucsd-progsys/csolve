@@ -567,6 +567,14 @@ and replaceFreeVars vs cts =
     | ct -> ct 
   end cts
 
+and unquantifyParentLocs locs ct =
+  match ct with
+    | Ct.FRef (f, r) ->
+      let f_locs = RS.domain f.Ct.sto_out |> List.filter (fun l -> List.mem l locs) in
+      let f'     = {f with Ct.globlocs = f.Ct.globlocs ++ f_locs |> M.sort_and_compact } in
+      Ct.FRef (f', r)
+    | _ -> ct
+
 and refcfunOfPreRefcfun sub gsto prcf =
   let gstof, ostof      = prcf.Ct.sto_out
                           |> RS.partition (M.flip List.mem prcf.Ct.globlocs)
@@ -576,8 +584,10 @@ and refcfunOfPreRefcfun sub gsto prcf =
   let gsto, sub         = updateGlobalStore sub gsto gstof in
   let globs             = prcf.Ct.globlocs |>: S.Subst.apply sub |> M.sort_and_compact in
   let effs              = substEffectSet sub prcf.Ct.effects in
+  let allLocs           = globs ++ RS.domain ostof |> M.sort_and_compact in
     (RCf.subs {prcf with Ct.globlocs = globs; 
-                         Ct.args = replaceFreeVars vs prcf.Ct.args;
+                         Ct.args = replaceFreeVars vs prcf.Ct.args
+                                |>: M.app_snd (unquantifyParentLocs allLocs);
                          Ct.sto_in = istof; 
                          Ct.sto_out = ostof; 
                          Ct.effects = effs} sub,

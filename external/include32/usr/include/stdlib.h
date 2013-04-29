@@ -481,7 +481,9 @@ __BEGIN_NAMESPACE_STD
 // extern void * malloc (size_t REF(V >= 0) __size) __THROW __attribute_malloc__ __wur;
 
 // CSOLVE
-extern void * LOC(!L) START NONNULL SIZE(__size) REF(? Set_emp([TAGSET([V])]))
+extern void * LOC(!L) START NONNULL SIZE(__size)
+              REF(? Set_emp([TAGSET([V])]))
+              REF(? MUTABLE([BLOCK_BEGIN([V])]))
      malloc (size_t REF(V >= 0) IGNORE_INDEX __size) __THROW __attribute_malloc__ __wur OKEXTERN;
 
 /* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */

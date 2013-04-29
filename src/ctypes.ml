@@ -962,9 +962,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
       ld |> Misc.flip set_stype (Some ty)
          |> mapn begin fun i _ pf -> 
               try Field.set_fieldinfo pf (fldm ld i) with Not_found -> 
-                let _ = E.warn "WARNING: decorate : %a bad idx %d, ld=%a, t=%a \n" 
-                        Sloc.d_sloc l i d_ldesc ld Cil.d_type ty
-                in pf
+                (* let _ = E.warn "WARNING: decorate : %a bad idx %d, ld=%a, t=%a \n"  *)
+                (*         Sloc.d_sloc l i d_ldesc ld Cil.d_type ty *)
+                (* in *) pf
             end
 
     let d_ref () = function
@@ -1723,7 +1723,9 @@ module Make (T: CTYPE_DEFS): S with module T = T = struct
 	  
     let quantify_tvars cf = {cf with quant_tvars = free_tvars cf}
       
-    let generalize cf = cf |> quantify_svars |> quantify_tvars
+    let generalize cf = cf
+                     |> quantify_svars
+                     |> quantify_tvars 
         
     let lsubs_of_args f args sub = 
       let flocs, alocs = 

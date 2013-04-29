@@ -1,1 +1,2 @@
+constant THE_STRING: func(1, [@(0); int])
 qualif BigStruct(v:ptr) : BLOCK_BEGIN([v]) + 12 = BLOCK_END([v])

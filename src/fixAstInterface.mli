@@ -30,6 +30,7 @@ val eApp_bend           : Ast.expr -> Ast.expr
 val eApp_uncheck        : Ast.expr -> Ast.expr 
 val eApp_deref          : Ast.expr -> Ast.Sort.t -> Ast.expr 
 val eApp_skolem         : Ast.expr -> Ast.expr 
+val eApp_mutable        : Ast.expr -> Ast.expr
 
 val name_of_string      : string -> name
 val name_of_varinfo     : Cil.varinfo -> name

@@ -218,7 +218,8 @@ let catch_convert_exp s e =
  *  assumes that "e" is a-normalized *)
 
 let reft_of_string vv str =
-  A.pAnd [A.pAtom (A.eVar vv, A.Gt, A.zero);
+  A.pAnd [A.pBexp (FA.eApp_mutable (FA.eApp_bbegin (A.eVar vv)));
+          A.pAtom (A.eVar vv, A.Gt, A.zero);
           A.pAtom (FA.eApp_bbegin (A.eVar vv), A.Eq, A.eVar vv);
           A.pAtom (FA.eApp_bend (A.eVar vv),
                    A.Eq,

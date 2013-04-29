@@ -17,6 +17,7 @@ LFLAGS=-lflags -cc,g++ \
        -lflags -cclib,-lstdc++ \
        -lflags -cclib,-lz3stubs \
        -lflags -cclib,-lcamlidl \
+       -lflags -cclib,-lrt \
        -lflags -cclib,-fopenmp
 
 CFLAGS=-cflags -dtypes \

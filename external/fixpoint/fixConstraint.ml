@@ -252,6 +252,10 @@ let report_wellformed env c p wf =
     let _   = F.eprintf "%s" msg                                                              in 
     let _   = SM.iter (fun s (_,t,_) -> F.eprintf "@[%a :: %a@]@." Sy.print s So.print t) env in
     let _   = F.eprintf "@[%a@]@.@." P.print p                                                in
+    let _   = match c.ido with
+      | Some id -> (F.printf "id: %d\n" id; ())
+      | _ -> (F.printf "No ID???\n"; ()) 
+    in
     if !Co.strictsortcheck then raise (BadConstraint (Misc.maybe c.ido, c.tag, msg))
 
 (* API *)

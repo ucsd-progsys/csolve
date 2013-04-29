@@ -39,3 +39,9 @@ qualif NullTerm(v: int) : (VVADDR = (BLOCK_END([VVADDR]) - 1)) => (v = 0)
 // Generally useful for effect tracking
 qualif NoWrite(v: ptr)   : EWRITE != 1
 qualif NoRead(v: ptr)    : EREAD != 1
+
+qualif Mutable(v: ptr)   : ? MUTABLE([BLOCK_BEGIN([v])])
+qualif Immutable(v: ptr) : (? MUTABLE([BLOCK_BEGIN([v])]) => (1 = 0))
+
+qualif NNMutable(v: ptr)   : (v != 0) => ? MUTABLE([BLOCK_BEGIN([v])])
+qualif NNImmutable(v: ptr) : (v != 0) => (? MUTABLE([BLOCK_BEGIN([v])]) => (1 = 0))

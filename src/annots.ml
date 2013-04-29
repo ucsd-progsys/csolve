@@ -177,7 +177,7 @@ let check_ld_bindings slocm l ld =
 
 let decorate_refldesc slocm l ld = 
   decorate_refldesc slocm l ld 
-  >> check_ld_bindings slocm l 
+  (* >> check_ld_bindings slocm l  *)
 
 let decorate_refstore slocm sto = 
   RCt.Store.map_ldesc (decorate_refldesc slocm) sto

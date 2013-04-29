@@ -1,10 +1,10 @@
 #include <stdlib.h>
 
-extern int * LOC(K) * LOC(!L) START NONNULL SIZE(4) make_ptr() OKEXTERN;
+extern int * LOC(K) * LOC(!L) START NONNULL SIZE(4) MPTR make_ptr() OKEXTERN;
 
 void set_ptr(int **p, int v){
   int *x;
-   x = (int *)malloc(sizeof(int));
+  x = (int *)malloc(sizeof(int));
   *x = v;
   *p = x;
   return;

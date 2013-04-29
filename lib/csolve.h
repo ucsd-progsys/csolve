@@ -89,8 +89,13 @@
 #define SOMEPTR           REF(0 = 0)
 
 #define NULLTERMSTR       REF((VVADDR = (BLOCK_END([VVADDR]) - 1)) => (V = 0))
-#define MEMPRED(_P)       REF(PMEMPRED(_P))
-#define IMMUTABLE(_P)     REF(PIMMUTABLE(_P))
+#define MEMPRED(_P)       //REF(PMEMPRED(_P))
+
+// A different notion of mutability
+#define PMUT           ?MUTABLE([BLOCK_BEGIN([V])])
+#define PIMMUT         PMUT => (0 = 1)
+#define MPTR           REF(PMUT)
+#define IPTR           NNREF(PMUT => (0 = 1))
 
 typedef char NULLTERMSTR * LOC(L) STRINGPTR csolve_string;
 typedef char const NULLTERMSTR FINAL * STRINGPTR  csolve_const_string;

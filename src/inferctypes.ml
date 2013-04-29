@@ -263,8 +263,14 @@ let constrain_app tgr i (fs, _) et cf tsub sub sto lvo args =
   let cts, tsub, sub, sto = constrain_args tgr loc et fs tsub sub sto args in
   let cts = cts |>: (Ct.subs sub <.> TVarInst.apply tsub) in
   let srcinfo       = CM.srcinfo_of_instr i (Some !C.currentLoc) in
+  (* let _ = Pretty.printf "CF: %a@!" CFun.d_cfun cf in *)
   let cfi, isub, tinsti, tinst, hsub = CFun.instantiate srcinfo cf cts sto in
+  (* let _ = Pretty.printf "CFI: %a@!" CFun.d_cfun cfi in *)
   let cts, isub     = instantiate_fref_args isub (cfi.args |>: snd) cts  in
+  (* let _ = Pretty.printf "cfi.args: %a@!@!" *)
+  (*   (Pretty.d_list "\n" Ct.d_ctype) (cfi.args |>: snd) in *)
+  (* let _ = Pretty.printf "cts: %a@!@!" *)
+  (*   (Pretty.d_list "\n" Ct.d_ctype) cts in *)
   let annot         = List.map (fun (sfrom, sto) -> RA.New (sfrom, sto)) isub
                    |> List.append (tinsti |>: fun (tfrom, tto) -> RA.TNew (tfrom, tto))
                    |> cond_add_annot (hsub <> StoreSubst.empty) (RA.HInst hsub)

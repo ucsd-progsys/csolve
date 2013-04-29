@@ -186,7 +186,11 @@ let cons_of_mem me loc tago tag grd env post_mem_env sto effs v eff =
     let rct = FI.t_ptr_footprint env v in
     let l   = rct |> RT.sloc |> M.maybe |> Sloc.canonical in
            FI.make_cs env grd rct (rct |> Ct.ctype_of_refctype |> FI.t_valid_ptr) tago tag loc
-       +++ FI.make_cs_effect_weaken_var post_mem_env grd sto v eff (ES.find effs l) tago tag loc
+    +++ FI.make_cs_effect_weaken_var post_mem_env grd sto v eff (ES.find effs l) tago tag loc
+    +++ (if eff = ED.writeEffect then
+        FI.make_cs env grd rct (rct |> Ct.ctype_of_refctype |> FI.t_mutable_ptr) tago tag loc
+      else
+        ([], []))
 
 let cons_of_string me loc tag grd (env, sto, tago) e =
   match t_exp_with_cs me loc tago tag grd env e with
@@ -460,10 +464,11 @@ let instantiate_tvars me env frt (lsubs,_,tsubs,tinst) =
   (frt', wfs)
     
 let instantiate_store me env grd tag tago loc sto frt (lsubs,hsubs,_,_) = 
-  let sto' = RS.map (Ct.ctype_of_refctype <+> FI.t_fresh) sto in
-  let wfs = FI.make_wfs_refstore env sto' sto' in
-  let cs,_  = FI.make_cs_refstore env grd sto sto' true tago tag loc in
-  RCf.subs_store_var hsubs lsubs sto' frt, cs, wfs
+  (* let sto' = RS.map (Ct.ctype_of_refctype <+> FI.t_fresh) sto in *)
+  (* let wfs = FI.make_wfs_refstore env sto' sto' in *)
+  (* let cs,_  = FI.make_cs_refstore env grd sto sto' true tago tag loc in *)
+  (* RCf.subs_store_var hsubs lsubs sto' frt, cs, wfs *)
+  RCf.subs_store_var hsubs lsubs sto frt, [], []
     
 let sto_of_fref = function
   | Ct.FRef (f,_) -> Some (Ct.stores_of_refcfun f |> snd)
@@ -488,6 +493,8 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
   let insts     = insts_of_annots pre_mem_env ns in
   let lsubs     = lsubs_of_insts insts in
   let (frt', inst_wfs) = instantiate_tvars me pre_mem_env frt insts in
+  (* let _ = Pretty.printf "TVAR INST:@!@!%a@!@!" RCf.d_cfun frt in *)
+  (* let _ = Pretty.printf "TVAR INST:@!@!%a@!@!" RCf.d_cfun frt' in *)
   let args      = frt' |> Ct.args_of_refcfun |> List.map (Misc.app_fst FA.name_of_string) in
   let args, es  = bindings_of_call loc args es in
   let subs      = List.combine (List.map fst args) es in
@@ -497,8 +504,13 @@ let cons_of_call me loc i j grd effs pre_mem_env (env, st, tago) f ((lvo, frt, e
                   end [] es in
   let ecrs = instantiate_frefs lsubs ecrs in
   let frt',scs,swfs     = instantiate_store me pre_mem_env grd tag tago loc (RS.upd st (sto_of_args ecrs)) frt' insts in
+  (* let _ = Pretty.printf "SVAR INST:@!@!%a@!@!" RCf.d_cfun frt' in *)
   let args = frt' |> Ct.args_of_refcfun in
-  let cs1,_            = FI.make_cs_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in
+  let _ = Pretty.printf "cons of call!\n" in
+  (* let cs1,_            = FI.make_cs_tuple env grd lsubs subs ecrs (List.map snd args) None tag loc in *)
+  let _ = List.iter (fun (x,y) -> (Pretty.printf "sub: [%s/%a]@!" (Ast.Symbol.to_string x) Cil.d_exp y); ()) subs in
+  let cs1,_            = FI.make_cs_tuple env grd lsubs subs ecrs (args |>: snd |> instantiate_frefs lsubs) None tag loc in
+  (* let _ = Format.printf "%a" (FixMisc.pprint_many true "\n" (FixConstraint.print_t None)) cs1 in *)
   let stbs             = RS.bindings st in
   let call             = (lvo, frt', es) in
   let istbs            = frt'.Ct.sto_in
@@ -565,6 +577,9 @@ let cons_of_annotinstr me i grd effs (j, pre_ffm, ((pre_mem_env, _, _) as wld)) 
   | Call (None, Lval (Var fv, NoOffset), _, _) when CilMisc.isVararg fv.Cil.vtype ->
       let _ = Cil.warnLoc loc "Ignoring vararg call" in
       (j+1, ffm, wld), with_wfs acds []
+  (* | Call (Some lv, Lval (Var fv, NoOffset), _, _) when CilMisc.isVararg fv.Cil.vtype -> *)
+  (*     let _ = Cil.warnLoc loc "Ignoring vararg call" in *)
+  (*     (j+1, ffm, wld), with_wfs acds [] *)
   | Call (lvo, Lval ((Var fv), NoOffset), es, _) ->
       let wld, cds, wfs =
         cons_of_call me loc i j grd effs pre_mem_env wld fv (lvo, FI.ce_find_fn fv.Cil.vname pre_mem_env, es) ns in
@@ -622,6 +637,10 @@ let scalarcons_of_instr me i grd (j, env) instr =
          (if CM.is_reference v.Cil.vtype then declared_ptr_type v else FI.t_true Ct.scalar_ctype)
       |> scalarcons_of_binding me loc tag (j, env) grd j v    
      
+  (* | Call (Some (Var v, NoOffset), Lval (Var fv, NoOffset), es, _) *)
+  (*   when CM.isVararg fv.Cil.vtype -> (\* Don't do much? true the return value? *\) *)
+  (*   (if CM.is_reference v.Cil.vtype then declared_ptr_type v else FI.t_true Ct.scalar_ctype) *)
+  (*   |> scalarcons_of_binding me loc tag (j, env) grd j v     *)
   | Call (Some (Var v, NoOffset), Lval (Var fv, NoOffset), es, _) ->
       let farg = Ct.args_of_refcfun 
                  <+> List.map (FA.name_of_string <.> fst) 
@@ -923,7 +942,7 @@ let rec cons_of_init (sto, cs) tag loc env cloc t ctptr = function
 
 let cons_of_var_init tag loc sto v vtyp = function
   | Some (CompoundInit _ as init) ->
-      let t_var       = v.vtype |> CilMisc.bytesSizeOf |> FI.t_size_ptr (Ct.ctype_of_refctype vtyp) in
+      let t_var       = v.vtype |> CilMisc.bytesSizeOf |> FI.t_size_mutable_ptr (Ct.ctype_of_refctype vtyp) in
       let cs1, _      = FI.make_cs FI.ce_empty Ast.pTrue t_var vtyp None tag loc in
       let aloc, r     = match vtyp with Ct.Ref (al, r) -> (al, r) | _ -> assert false in
       let cloc        = Sloc.copy_concrete aloc in

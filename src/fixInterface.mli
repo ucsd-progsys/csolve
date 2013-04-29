@@ -96,7 +96,9 @@ val t_nullterm_refctype : Ctypes.refctype -> Ctypes.refctype
 val t_pred              : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_spec_pred         : Ctypes.ctype -> Ast.Symbol.t -> Ast.pred -> Ctypes.refctype
 val t_size_ptr          : Ctypes.ctype -> int -> Ctypes.refctype
+val t_size_mutable_ptr  : Ctypes.ctype -> int -> Ctypes.refctype
 val t_valid_ptr         : Ctypes.ctype -> Ctypes.refctype
+val t_mutable_ptr       : Ctypes.ctype -> Ctypes.refctype
 val t_start_ptr         : Ctypes.ctype -> Ctypes.refctype
 val t_ptr_footprint     : cilenv -> Cil.varinfo -> Ctypes.refctype
 val t_fptr_footprint    : cilenv -> Cil.varinfo -> Ctypes.refctype

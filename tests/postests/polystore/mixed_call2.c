@@ -4,33 +4,34 @@
 
 struct s {
   int x;
-  char * ARRAY LOC(STR) y;
+  char NULLTERMSTR * ARRAY LOC(STR) y;
 };
 
 struct big_s {
   int padding;
-  char * ARRAY LOC(FOO) big_y;
+  char NULLTERMSTR * ARRAY LOC(FOO) big_y;
   int big_x;
 };
 
-void register_cb(char * ARRAY LOC(STR) str,
-		 void * VAR(a) p,
-                 void (* START VALIDPTR cb)(char * ARRAY LOC(STR), void * VAR(a)))
+void register_cb(char NULLTERMSTR * ARRAY LOC(STR) str,
+		             void * VAR(a) p,
+                 void (* START VALIDPTR cb)(char NULLTERMSTR * ARRAY LOC(STR), void * VAR(a)))
 {
   cb(str, p);
 }
 
-void process(char * ARRAY LOC(STR) str, struct s INST(STR, STR) *p)
+void process(char NULLTERMSTR * ARRAY LOC(STR) str, struct s INST(STR, STR) *p)
 {
-  if (strcmp(str, p->y))
+ // if (strcmp(str, p->y))
+  if (strcmp("ASDF", p->y))
   {
     p->x++;
   }
 }
 
-void process_big(char *ARRAY LOC(FOO) str, struct big_s INST(FOO, FOO) *p)
+void process_big(char NULLTERMSTR *ARRAY LOC(FOO) str, struct big_s INST(FOO, FOO) *p)
 {
-  if (strcmp(str, p->big_y))
+ // if (strcmp(str, p->big_y))
   {
     p->big_x++;
   }
